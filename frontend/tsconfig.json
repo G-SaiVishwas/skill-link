@@ -1,17 +1,7 @@
 {
-  "extends": "next/core-web-vitals-tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["components/*"],
-      "@/lib/*": ["lib/*"]
-    },
-    "types": ["node"],
-    "moduleResolution": "bundler",
-    "jsx": "preserve",
-    "ignoreDeprecations": "6.0"
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }
