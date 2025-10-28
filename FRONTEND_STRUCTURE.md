@@ -217,6 +217,7 @@ frontend/
 **⚠️ Backend developer must implement these exact endpoints:**
 
 ### 1. Authentication
+
 ```
 POST /api/auth/login          - Send OTP to phone
 POST /api/auth/verify         - Verify OTP & return JWT token
@@ -224,6 +225,7 @@ POST /api/auth/refresh        - Refresh access token
 ```
 
 ### 2. Worker APIs
+
 ```
 POST   /api/onboard/worker         - Create worker profile (with AI skill extraction)
 GET    /api/worker/me              - Get logged-in worker's profile
@@ -232,6 +234,7 @@ PATCH  /api/worker/:id             - Update worker profile
 ```
 
 ### 3. Employer APIs
+
 ```
 POST   /api/onboard/employer   - Create employer profile
 GET    /api/employer/me        - Get logged-in employer's profile
@@ -240,6 +243,7 @@ PATCH  /api/employer/:id       - Update employer profile
 ```
 
 ### 4. Job APIs
+
 ```
 POST   /api/job/create         - Create job & return AI-matched workers
 GET    /api/job/:id            - Get job details
@@ -248,6 +252,7 @@ GET    /api/workers/search     - Search workers (filters: skill, city, rate)
 ```
 
 ### 5. Match APIs
+
 ```
 POST   /api/match/:id/contact  - Shortlist worker & initiate chat
 PATCH  /api/match/:id/status   - Update match status (hired/rejected)
@@ -255,12 +260,14 @@ GET    /api/matches            - Get matches (query: ?worker_id= or ?employer_id
 ```
 
 ### 6. Chat APIs
+
 ```
 GET    /api/messages/:match_id - Get all messages for a match
 POST   /api/message            - Send new message
 ```
 
 ### 7. Upload APIs
+
 ```
 POST   /api/upload/photo       - Upload & resize photo to Supabase Storage
 POST   /api/upload/voice       - Upload voice & optionally transcribe
@@ -273,6 +280,7 @@ POST   /api/upload/voice       - Upload voice & optionally transcribe
 ### Example 1: Worker Onboarding
 
 **Frontend calls:**
+
 ```typescript
 // src/services/worker.service.ts
 await createWorkerProfile({
@@ -281,11 +289,12 @@ await createWorkerProfile({
   photo_url: "https://storage.../photo.jpg",
   voice_url: "https://storage.../voice.mp3",
   location: { city: "Bengaluru", lat: 12.97, lng: 77.59 },
-  rate_per_hour: 150
-})
+  rate_per_hour: 150,
+});
 ```
 
 **Backend must return:**
+
 ```json
 {
   "success": true,
@@ -297,9 +306,7 @@ await createWorkerProfile({
     "trustrank": 4.2,
     "suggested_rate": 180
   },
-  "skills": [
-    { "slug": "cook", "name": "Cook", "proficiency": "expert" }
-  ],
+  "skills": [{ "slug": "cook", "name": "Cook", "proficiency": "expert" }],
   "skill_card": {
     "card_url": "/worker/worker-uuid",
     "qr_code_data": "https://skilllink.demo/worker/worker-uuid"
@@ -312,15 +319,17 @@ await createWorkerProfile({
 ### Example 2: Employer Posts Job
 
 **Frontend calls:**
+
 ```typescript
 // src/services/job.service.ts
 await createJobRequest({
   raw_text: "Need a cook who makes gobi for my hotel",
-  location: { city: "Hyderabad", lat: 17.38, lng: 78.48 }
-})
+  location: { city: "Hyderabad", lat: 17.38, lng: 78.48 },
+});
 ```
 
 **Backend must return:**
+
 ```json
 {
   "success": true,
@@ -353,15 +362,17 @@ await createJobRequest({
 ### Example 3: Chat Message
 
 **Frontend calls:**
+
 ```typescript
 // src/services/chat.service.ts
 await sendMessage({
   match_id: "match-uuid",
-  message_text: "Can you start tomorrow?"
-})
+  message_text: "Can you start tomorrow?",
+});
 ```
 
 **Backend must return:**
+
 ```json
 {
   "success": true,
@@ -390,6 +401,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1...
 ```
 
 **Backend .env:**
+
 ```bash
 PORT=3001
 SUPABASE_URL=https://xxx.supabase.co
@@ -404,11 +416,13 @@ FRONTEND_URL=http://localhost:3000
 ## 🧪 Testing Strategy
 
 ### Backend Developer Can Test Independently:
+
 1. Use Postman to test each endpoint
 2. Use seed data from `db/seed.sql` (5 workers, 3 employers, 3 jobs)
 3. Check response format matches examples above
 
 ### Frontend Developer Can Test Independently:
+
 1. Use mock data from `public/workers.json` and `public/jobs.json`
 2. Service layer has fallback logic if API fails
 3. Once backend is ready, update `NEXT_PUBLIC_API_URL` and everything auto-connects
@@ -418,18 +432,22 @@ FRONTEND_URL=http://localhost:3000
 ## 🚀 Parallel Development Workflow
 
 ### Day 1-2: Setup Phase
+
 - **Backend:** Set up server, database, auth middleware
 - **Frontend:** Set up Next.js, install dependencies, create UI components
 
 ### Day 3-4: Core Features
+
 - **Backend:** Implement worker onboarding API + job creation API
 - **Frontend:** Build onboarding UI + job posting UI with mock data
 
 ### Day 5-6: Integration
+
 - **Backend:** Implement chat & match APIs
 - **Frontend:** Connect services to real APIs, replace mocks
 
 ### Day 7: Polish & Demo
+
 - **Both:** Test full flow, fix bugs, prepare demo script
 
 ---
