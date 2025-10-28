@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_employer_profiles_user_id ON employer_profiles (user_id);
+DROP INDEX IF EXISTS idx_employer_profiles_user_id;
+CREATE UNIQUE INDEX idx_employer_profiles_user_id ON employer_profiles (user_id);
 CREATE INDEX IF NOT EXISTS idx_employer_profiles_city ON employer_profiles (location_city);
 CREATE INDEX IF NOT EXISTS idx_employer_profiles_latlng ON employer_profiles USING gist (ll_to_earth(coalesce(latitude,0)::double precision, coalesce(longitude,0)::double precision));
 

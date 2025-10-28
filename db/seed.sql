@@ -92,7 +92,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
 SELECT u.id, s.id,
-       CASE s.slug WHEN 'cook' THEN 'expert' ELSE 'intermediate' END,
+       (CASE s.slug WHEN 'cook' THEN 'expert' ELSE 'intermediate' END)::skill_proficiency,
        3.0
 FROM users u
 JOIN skills s ON s.slug IN ('cook','vegetarian','gobi','hotel')
@@ -100,28 +100,28 @@ WHERE u.auth_uid = 'auth-worker-001'
 ON CONFLICT (user_id, skill_id) DO NOTHING;
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
-SELECT u.id, s.id, 'intermediate', 2.5
+SELECT u.id, s.id, 'intermediate'::skill_proficiency, 2.5
 FROM users u
 JOIN skills s ON s.slug IN ('cook','hotel')
 WHERE u.auth_uid = 'auth-worker-002'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
-SELECT u.id, s.id, 'expert', 5.0
+SELECT u.id, s.id, 'expert'::skill_proficiency, 5.0
 FROM users u
 JOIN skills s ON s.slug IN ('carpenter')
 WHERE u.auth_uid = 'auth-worker-003'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
-SELECT u.id, s.id, 'intermediate', 4.0
+SELECT u.id, s.id, 'intermediate'::skill_proficiency, 4.0
 FROM users u
 JOIN skills s ON s.slug IN ('tailor','beautician')
 WHERE u.auth_uid = 'auth-worker-004'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
-SELECT u.id, s.id, 'beginner', 1.5
+SELECT u.id, s.id, 'beginner'::skill_proficiency, 1.5
 FROM users u
 JOIN skills s ON s.slug IN ('electrician','plumber')
 WHERE u.auth_uid = 'auth-worker-005'
@@ -132,16 +132,16 @@ SELECT
   ep.id,
   seed.raw_text,
   seed.ai_transcript,
-  seed.ai_skills,
+  seed.ai_skills::jsonb,
   seed.role_text,
-  seed.urgency,
+  seed.urgency::job_urgency_level,
   seed.preferred_experience,
   seed.location_city,
   seed.latitude,
   seed.longitude,
   seed.availability_window,
-  seed.status,
-  seed.ai_meta
+  seed.status::job_request_status,
+  seed.ai_meta::jsonb
 FROM (
   VALUES
     (
