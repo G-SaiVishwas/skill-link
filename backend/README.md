@@ -2,10 +2,16 @@
 
 Complete backend implementation for the SkillLink gig worker matching platform MVP.
 
+## ⚠️ IMPORTANT: Google OAuth Authentication
+
+**This backend now uses Supabase Google OAuth instead of OTP-based login.**
+
+📖 **See [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md) for complete setup instructions.**
+
 ## 🎯 Overview
 
 This backend provides all the APIs needed by the SkillLink frontend to:
-- Authenticate users with OTP-based login
+- Authenticate users with Google OAuth (via Supabase)
 - Onboard workers with AI-powered skill extraction and bio generation
 - Onboard employers and enable job posting
 - Match workers to jobs using intelligent ranking algorithms
@@ -19,9 +25,9 @@ This backend provides all the APIs needed by the SkillLink frontend to:
 - **Framework:** Fastify 4.x (fast & lightweight)
 - **Language:** TypeScript
 - **Database:** Supabase (PostgreSQL)
+- **Auth:** Supabase Google OAuth with JWT verification
 - **AI:** OpenAI GPT-4o-mini + Whisper
 - **Storage:** Supabase Storage
-- **Auth:** JWT tokens + OTP verification
 - **Validation:** Zod schemas
 
 ## 📁 Project Structure

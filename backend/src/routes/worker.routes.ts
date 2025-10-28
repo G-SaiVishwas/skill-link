@@ -19,7 +19,7 @@ export async function workerRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const body = validateBody(createWorkerProfileSchema, request.body) as CreateWorkerProfileRequest;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         // Check if worker profile already exists
         const existing = await supabaseService.getWorkerProfile(userId);
@@ -175,7 +175,7 @@ export async function workerRoutes(fastify: FastifyInstance) {
     { preHandler: [authMiddleware] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         const workerProfile = await supabaseService.getWorkerProfile(userId);
 
@@ -261,7 +261,7 @@ export async function workerRoutes(fastify: FastifyInstance) {
     }>, reply: FastifyReply) => {
       try {
         const { id } = request.params;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
         const updates = validateBody(updateWorkerProfileSchema, request.body);
 
         // Verify ownership

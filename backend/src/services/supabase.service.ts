@@ -358,7 +358,7 @@ class SupabaseService {
     return data;
   }
 
-  async getPublicUrl(bucket: string, path: string): string {
+  async getPublicUrl(bucket: string, path: string): Promise<string> {
     const { data } = this.client.storage
       .from(bucket)
       .getPublicUrl(path);

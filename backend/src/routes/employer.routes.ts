@@ -17,7 +17,7 @@ export async function employerRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const body = validateBody(createEmployerProfileSchema, request.body) as CreateEmployerProfileRequest;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         // Check if employer profile already exists
         const existing = await supabaseService.getEmployerProfile(userId);
@@ -75,7 +75,7 @@ export async function employerRoutes(fastify: FastifyInstance) {
     { preHandler: [authMiddleware] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         const employerProfile = await supabaseService.getEmployerProfile(userId);
 
@@ -108,7 +108,7 @@ export async function employerRoutes(fastify: FastifyInstance) {
     { preHandler: [authMiddleware] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         // Get employer profile
         const employerProfile = await supabaseService.getEmployerProfile(userId);
@@ -148,7 +148,7 @@ export async function employerRoutes(fastify: FastifyInstance) {
     }>, reply: FastifyReply) => {
       try {
         const { id } = request.params;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
         const updates = validateBody(updateEmployerProfileSchema, request.body);
 
         // Get employer profile to verify ownership

@@ -1,137 +1,129 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authService } from '../services/auth.service';
 import { supabaseService } from '../services/supabase.service';
-import { validateBody, loginSchema, verifyOTPSchema } from '../validators/schemas';
 import { API_MESSAGES } from '../config/constants';
-import { LoginRequest, VerifyOTPRequest } from '../types';
 
+/**
+ * Auth routes for Supabase Google OAuth
+ * 
+ * Flow:
+ * 1. Frontend uses Supabase Auth UI for Google OAuth
+ * 2. Frontend gets Supabase session token
+ * 3. Frontend sends token to /api/auth/session
+ * 4. Backend verifies token and creates/retrieves user
+ * 5. Backend returns user data
+ */
 export async function authRoutes(fastify: FastifyInstance) {
   /**
-   * POST /api/auth/login
-   * Send OTP to phone number
+   * POST /api/auth/session
+   * Verify Supabase token and get/create user
    */
-  fastify.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = validateBody(loginSchema, request.body) as LoginRequest;
-
-      // Send OTP (in MVP, it's just logged; in prod, send SMS)
-      const { otp, expiresAt } = await authService.sendOTP(body.phone);
-
-      // In development, return the OTP in response for testing
-      const response: any = {
-        success: true,
-        message: API_MESSAGES.AUTH.OTP_SENT,
-      };
-
-      if (process.env.NODE_ENV === 'development') {
-        response.debug = { otp, expiresAt };
-      }
-
-      return reply.status(200).send(response);
-    } catch (error: any) {
-      return reply.status(500).send({
-        success: false,
-        error: error.message || API_MESSAGES.GENERAL.SERVER_ERROR,
-      });
-    }
-  });
-
-  /**
-   * POST /api/auth/verify
-   * Verify OTP and return JWT token
-   */
-  fastify.post('/verify', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = validateBody(verifyOTPSchema, request.body) as VerifyOTPRequest;
-
-      // Verify OTP
-      const isValid = authService.verifyOTP(body.phone, body.otp);
-
-      if (!isValid) {
-        return reply.status(401).send({
-          success: false,
-          error: API_MESSAGES.AUTH.INVALID_OTP,
-        });
-      }
-
-      // Check if user exists
-      let user = await supabaseService.getUserByPhone(body.phone);
-
-      if (!user) {
-        // Create new user with unknown role (will be set during onboarding)
-        const authUid = `auth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        user = await supabaseService.createUser({
-          auth_uid: authUid,
-          role: 'worker', // Default to worker; can be changed during onboarding
-          phone: body.phone,
-        });
-      }
-
-      // Generate JWT token
-      const token = authService.generateToken(user);
-
-      // Clear OTP
-      authService.clearOTP(body.phone);
-
-      return reply.status(200).send({
-        success: true,
-        message: API_MESSAGES.AUTH.OTP_VERIFIED,
-        token,
-        user: {
-          id: user.id,
-          auth_uid: user.auth_uid,
-          role: user.role,
-          phone: user.phone,
-        },
-      });
-    } catch (error: any) {
-      return reply.status(500).send({
-        success: false,
-        error: error.message || API_MESSAGES.GENERAL.SERVER_ERROR,
-      });
-    }
-  });
-
-  /**
-   * POST /api/auth/refresh
-   * Refresh access token
-   */
-  fastify.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/session', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authHeader = request.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return reply.status(401).send({
           success: false,
-          error: API_MESSAGES.AUTH.UNAUTHORIZED,
+          error: 'Authorization header required',
         });
       }
 
       const token = authHeader.substring(7);
-      const decoded = authService.verifyToken(token);
 
-      // Get latest user data
-      const user = await supabaseService.getUserByAuthUid(decoded.authUid);
+      // Verify and extract user info from Supabase token
+      const tokenData = authService.extractUserFromToken(token);
+
+      // Check if user exists
+      let user = await supabaseService.getUserByAuthUid(tokenData.authUid);
 
       if (!user) {
-        return reply.status(404).send({
-          success: false,
-          error: 'User not found',
+        // Create new user from Google OAuth data
+        user = await supabaseService.createUser({
+          auth_uid: tokenData.authUid,
+          email: tokenData.email,
+          phone: tokenData.phone || '',
+          role: '', // Will be set during onboarding
         });
       }
 
-      // Generate new token
-      const newToken = authService.generateToken(user);
-
       return reply.status(200).send({
         success: true,
-        token: newToken,
+        user: {
+          id: user.id,
+          auth_uid: user.auth_uid,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          created_at: user.created_at,
+        },
+        message: user.role ? 'User authenticated' : 'Please complete onboarding',
+        needsOnboarding: !user.role,
       });
     } catch (error: any) {
+      console.error('Auth session error:', error);
       return reply.status(401).send({
         success: false,
         error: API_MESSAGES.AUTH.TOKEN_INVALID,
       });
     }
   });
+
+  /**
+   * GET /api/auth/me
+   * Get current user (requires auth)
+   */
+  fastify.get('/me', {
+    preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const authHeader = request.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          reply.status(401).send({
+            success: false,
+            error: API_MESSAGES.AUTH.UNAUTHORIZED,
+          });
+          return;
+        }
+
+        const token = authHeader.substring(7);
+        const tokenData = authService.extractUserFromToken(token);
+        const user = await supabaseService.getUserByAuthUid(tokenData.authUid);
+
+        if (!user) {
+          reply.status(401).send({
+            success: false,
+            error: 'User not found',
+          });
+          return;
+        }
+
+        request.user = user;
+      } catch (error) {
+        reply.status(401).send({
+          success: false,
+          error: API_MESSAGES.AUTH.TOKEN_INVALID,
+        });
+      }
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      success: true,
+      user: request.user,
+    });
+  });
+
+  /**
+   * POST /api/auth/logout
+   * Logout (client-side handles Supabase signOut)
+   */
+  fastify.post('/logout', async (_request: FastifyRequest, reply: FastifyReply) => {
+    // With Supabase, logout is handled on client side
+    // This endpoint is just for consistency
+    return reply.status(200).send({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  });
 }
+

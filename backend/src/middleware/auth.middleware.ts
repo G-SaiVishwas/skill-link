@@ -6,9 +6,10 @@ import { API_MESSAGES } from '../config/constants';
 declare module 'fastify' {
   interface FastifyRequest {
     user?: {
-      userId: string;
-      authUid: string;
+      id: string;
+      auth_uid: string;
       role: string;
+      email: string | null;
       phone: string;
     };
   }
@@ -32,16 +33,23 @@ export async function authMiddleware(
     }
 
     const token = authHeader.substring(7);
-    const decoded = authService.verifyToken(token);
 
-    // Attach user info to request
-    request.user = {
-      userId: decoded.userId,
-      authUid: decoded.authUid,
-      role: decoded.role,
-      phone: decoded.phone,
-    };
-  } catch (error) {
+    // Verify Supabase JWT token
+    const tokenData = authService.extractUserFromToken(token);
+
+    // Get user from database using auth_uid from Supabase
+    const user = await supabaseService.getUserByAuthUid(tokenData.authUid);
+
+    if (!user) {
+      return reply.status(401).send({
+        success: false,
+        error: 'User not found. Please complete onboarding.',
+      });
+    }
+
+    // Attach full user object to request
+    request.user = user;
+  } catch (error: any) {
     return reply.status(401).send({
       success: false,
       error: API_MESSAGES.AUTH.TOKEN_INVALID,

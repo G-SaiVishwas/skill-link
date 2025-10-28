@@ -43,7 +43,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         }
 
         // Upload and optimize
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
         const publicUrl = await storageService.uploadPhoto(buffer, userId, data.filename);
 
         return reply.status(200).send({
@@ -101,7 +101,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         }
 
         // Upload voice file
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
         const publicUrl = await storageService.uploadVoice(
           buffer,
           userId,

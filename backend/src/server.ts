@@ -32,9 +32,25 @@ const fastify = Fastify({
 
 // Register plugins
 async function registerPlugins() {
-  // CORS
+  // CORS - Allow frontend from localhost and Vercel deployments
   await fastify.register(cors, {
-    origin: [config.frontendUrl, 'http://localhost:3000'],
+    origin: (origin, cb) => {
+      const allowedOrigins = [
+        config.frontendUrl,
+        'http://localhost:3000',
+        'http://localhost:5173', // Vite default port
+      ];
+      
+      // Allow Vercel preview and production deployments
+      if (origin && (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin))) {
+        cb(null, true);
+      } else if (!origin) {
+        // Allow requests with no origin (like mobile apps or curl)
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
     credentials: true,
   });
 
@@ -98,26 +114,33 @@ async function start() {
     `);
 
     console.log('\n📋 Available Routes:');
-    console.log('  POST   /api/auth/login');
-    console.log('  POST   /api/auth/verify');
-    console.log('  POST   /api/auth/refresh');
+    console.log('  AUTH (Google OAuth via Supabase):');
+    console.log('  POST   /api/auth/session    - Verify Supabase token & get/create user');
+    console.log('  GET    /api/auth/me         - Get current user');
+    console.log('  POST   /api/auth/logout     - Logout');
+    console.log('\n  WORKER:');
     console.log('  POST   /api/onboard/worker');
     console.log('  GET    /api/worker/me');
     console.log('  GET    /api/worker/:id/skillcard');
     console.log('  PATCH  /api/worker/:id');
+    console.log('\n  EMPLOYER:');
     console.log('  POST   /api/onboard/employer');
     console.log('  GET    /api/employer/me');
     console.log('  GET    /api/employer/jobs');
     console.log('  PATCH  /api/employer/:id');
+    console.log('\n  JOB:');
     console.log('  POST   /api/job/create');
     console.log('  GET    /api/job/:id');
     console.log('  GET    /api/job/:id/matches');
     console.log('  GET    /api/workers/search');
+    console.log('\n  MATCH:');
     console.log('  POST   /api/match/:id/contact');
     console.log('  PATCH  /api/match/:id/status');
     console.log('  GET    /api/matches');
+    console.log('\n  CHAT:');
     console.log('  GET    /api/messages/:match_id');
     console.log('  POST   /api/message');
+    console.log('\n  UPLOAD:');
     console.log('  POST   /api/upload/photo');
     console.log('  POST   /api/upload/voice');
     console.log('\n✅ Server ready for requests!\n');

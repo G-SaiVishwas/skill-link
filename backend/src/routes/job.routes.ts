@@ -19,7 +19,7 @@ export async function jobRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const body = validateBody(createJobRequestSchema, request.body) as CreateJobRequest;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         // Get employer profile
         const employerProfile = await supabaseService.getEmployerProfile(userId);

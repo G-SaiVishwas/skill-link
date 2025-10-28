@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { supabaseService } from '../services/supabase.service';
-import { openaiService } from '../services/openai.service';
+// import { openaiService } from '../services/openai.service'; // For future translation feature
 import { validateBody, sendMessageSchema } from '../validators/schemas';
 import { API_MESSAGES } from '../config/constants';
 import { SendMessageRequest } from '../types';
@@ -45,7 +45,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const body = validateBody(sendMessageSchema, request.body) as SendMessageRequest;
-        const userId = request.user!.userId;
+        const userId = request.user!.id;
 
         // Get match to determine direction
         const match = await supabaseService.getMatch(body.match_id);

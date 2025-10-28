@@ -10,7 +10,12 @@
     "lint": "eslint src --ext .ts",
     "test": "jest"
   },
-  "keywords": ["skilllink", "gig-workers", "api", "fastify"],
+  "keywords": [
+    "skilllink",
+    "gig-workers",
+    "api",
+    "fastify"
+  ],
   "author": "SkillLink Team",
   "license": "MIT",
   "dependencies": {
@@ -26,6 +31,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@fastify/type-provider-typebox": "^6.1.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.11.16",
     "@types/qrcode": "^1.5.5",

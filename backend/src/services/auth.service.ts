@@ -2,88 +2,80 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { User } from '../types';
 
-// In-memory OTP store (for MVP - use Redis in production)
-interface OTPRecord {
-  otp: string;
-  expiresAt: Date;
-  verified: boolean;
+interface SupabaseJWTPayload {
+  aud: string;
+  exp: number;
+  sub: string; // This is the auth_uid from Supabase Auth
+  email?: string;
+  phone?: string;
+  role?: string;
+  user_metadata?: any;
+  app_metadata?: any;
 }
-
-const otpStore = new Map<string, OTPRecord>();
 
 class AuthService {
   /**
-   * Generate a random 6-digit OTP
+   * Verify Supabase JWT token
    */
-  generateOTP(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  verifySupabaseToken(token: string): SupabaseJWTPayload {
+    try {
+      const decoded = jwt.verify(token, config.supabase.jwtSecret, {
+        algorithms: ['HS256'],
+      }) as SupabaseJWTPayload;
+      
+      // Check if token is expired
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        throw new Error('Token expired');
+      }
+      
+      return decoded;
+    } catch (error) {
+      throw new Error('Invalid or expired Supabase token');
+    }
   }
 
   /**
-   * Send OTP to phone (MVP: just store it, in prod use Twilio/AWS SNS)
+   * Extract user info from Supabase JWT
    */
-  async sendOTP(phone: string): Promise<{ otp: string; expiresAt: Date }> {
-    const otp = this.generateOTP();
-    const expiresAt = new Date(Date.now() + config.otp.expiryMinutes * 60 * 1000);
-
-    otpStore.set(phone, {
-      otp,
-      expiresAt,
-      verified: false,
-    });
-
-    // TODO: In production, send SMS via Twilio/AWS SNS
-    console.log(`📱 OTP for ${phone}: ${otp} (expires at ${expiresAt.toISOString()})`);
-
-    return { otp, expiresAt };
+  extractUserFromToken(token: string): { authUid: string; email?: string; phone?: string } {
+    const decoded = this.verifySupabaseToken(token);
+    return {
+      authUid: decoded.sub,
+      email: decoded.email || decoded.user_metadata?.email,
+      phone: decoded.phone || decoded.user_metadata?.phone,
+    };
   }
 
   /**
-   * Verify OTP for a phone number
+   * Validate if token is from Supabase Auth
    */
-  verifyOTP(phone: string, otp: string): boolean {
-    const record = otpStore.get(phone);
-
-    if (!record) {
+  isValidSupabaseToken(token: string): boolean {
+    try {
+      this.verifySupabaseToken(token);
+      return true;
+    } catch {
       return false;
     }
-
-    if (record.verified) {
-      return false; // OTP already used
-    }
-
-    if (new Date() > record.expiresAt) {
-      otpStore.delete(phone);
-      return false; // OTP expired
-    }
-
-    if (record.otp !== otp) {
-      return false; // Wrong OTP
-    }
-
-    // Mark as verified
-    record.verified = true;
-    return true;
   }
 
   /**
-   * Generate JWT token for a user
+   * Generate JWT token for a user (custom token if needed)
    */
   generateToken(user: User): string {
     const payload = {
       userId: user.id,
       authUid: user.auth_uid,
       role: user.role,
-      phone: user.phone,
+      email: user.email,
     };
 
     return jwt.sign(payload, config.jwt.secret, {
       expiresIn: config.jwt.expiresIn,
-    });
+    } as any);
   }
 
   /**
-   * Verify and decode JWT token
+   * Verify custom JWT token (fallback if not using Supabase token)
    */
   verifyToken(token: string): any {
     try {
@@ -91,24 +83,6 @@ class AuthService {
     } catch (error) {
       throw new Error('Invalid or expired token');
     }
-  }
-
-  /**
-   * Clear OTP record (cleanup)
-   */
-  clearOTP(phone: string): void {
-    otpStore.delete(phone);
-  }
-
-  /**
-   * Get OTP for testing purposes (dev only!)
-   */
-  getOTPForTesting(phone: string): string | null {
-    if (config.nodeEnv !== 'development') {
-      return null;
-    }
-    const record = otpStore.get(phone);
-    return record?.otp || null;
   }
 }
 

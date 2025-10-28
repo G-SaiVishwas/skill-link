@@ -15,6 +15,7 @@ export const config = {
     url: process.env.SUPABASE_URL || '',
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     anonKey: process.env.SUPABASE_ANON_KEY || '',
+    jwtSecret: process.env.SUPABASE_JWT_SECRET || '',
   },
 
   // JWT
@@ -51,6 +52,7 @@ export const config = {
 const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_JWT_SECRET',
   'OPENAI_API_KEY',
   'JWT_SECRET',
 ];
