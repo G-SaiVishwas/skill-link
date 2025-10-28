@@ -14,10 +14,18 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   message_text text,
   message_voice_url text,
+  message_translated_text text,
+  message_language text,
   direction message_direction NOT NULL,
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS message_translated_text text;
+
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS message_language text;
 
 CREATE INDEX IF NOT EXISTS idx_messages_match_id ON messages (match_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages (sender_user_id);

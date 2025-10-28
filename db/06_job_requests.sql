@@ -8,6 +8,13 @@ BEGIN
   END IF;
 END$$;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'job_urgency_level') THEN
+    CREATE TYPE job_urgency_level AS ENUM ('low', 'medium', 'high', 'urgent');
+  END IF;
+END$$;
+
 CREATE TABLE IF NOT EXISTS job_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   employer_id uuid NOT NULL REFERENCES employer_profiles(id) ON DELETE CASCADE,
@@ -15,9 +22,11 @@ CREATE TABLE IF NOT EXISTS job_requests (
   raw_voice_url text,
   ai_transcript text,
   ai_skills jsonb DEFAULT '[]'::jsonb,
+  structured_job jsonb DEFAULT '{}'::jsonb,
   role_text text,
-  urgency text,
+  urgency job_urgency_level DEFAULT 'medium',
   preferred_experience text,
+  ai_summary text,
   location_city text,
   latitude double precision,
   longitude double precision,
@@ -27,6 +36,22 @@ CREATE TABLE IF NOT EXISTS job_requests (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE job_requests
+  ALTER COLUMN urgency TYPE job_urgency_level
+  USING CASE
+    WHEN urgency IS NULL THEN 'medium'::job_urgency_level
+    ELSE urgency::job_urgency_level
+  END;
+
+ALTER TABLE job_requests
+  ALTER COLUMN urgency SET DEFAULT 'medium';
+
+ALTER TABLE job_requests
+  ADD COLUMN IF NOT EXISTS structured_job jsonb DEFAULT '{}'::jsonb;
+
+ALTER TABLE job_requests
+  ADD COLUMN IF NOT EXISTS ai_summary text;
 
 CREATE INDEX IF NOT EXISTS idx_job_requests_employer ON job_requests (employer_id);
 CREATE INDEX IF NOT EXISTS idx_job_requests_status ON job_requests (status);

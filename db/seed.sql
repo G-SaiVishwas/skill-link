@@ -13,22 +13,56 @@ VALUES
   ('auth-employer-003', 'employer', '+919200000003', 'employer3@example.com')
 ON CONFLICT (auth_uid) DO NOTHING;
 
-INSERT INTO worker_profiles (user_id, display_name, photo_url, voice_intro_url, bio_generated, location_city, latitude, longitude, suggested_rate, availability_status, trustrank, verified, languages, voice_sentiment_score)
-SELECT id, initcap(split_part(auth_uid, '-', 2)),
-       'https://storage.skilllink.demo/workers/' || auth_uid || '.jpg',
-       'https://storage.skilllink.demo/voices/' || auth_uid || '.mp3',
-       'Experienced professional ready for gigs around the city.',
-       CASE WHEN auth_uid IN ('auth-worker-001','auth-worker-002') THEN 'Hyderabad'
-            WHEN auth_uid IN ('auth-worker-003','auth-worker-004') THEN 'Bengaluru'
-            ELSE 'Mumbai' END,
-       17.3850 + (random() / 10),
-       78.4867 + (random() / 10),
-       1200 + (random() * 300),
-       'available',
-       4.2,
-       auth_uid IN ('auth-worker-001','auth-worker-003'),
-       ARRAY['English','Hindi'],
-       0.78
+INSERT INTO worker_profiles (
+  user_id,
+  display_name,
+  photo_url,
+  voice_intro_url,
+  voice_transcript,
+  bio_generated,
+  bio_generated_local,
+  location_city,
+  latitude,
+  longitude,
+  suggested_rate,
+  availability_status,
+  trustrank,
+  verified,
+  languages,
+  voice_sentiment_score,
+  ai_metadata
+)
+SELECT
+  id,
+  initcap(split_part(auth_uid, '-', 2)),
+  'https://storage.skilllink.demo/workers/' || auth_uid || '.jpg',
+  'https://storage.skilllink.demo/voices/' || auth_uid || '.mp3',
+  'Hi, I''m ' || initcap(split_part(auth_uid, '-', 2)) || ' and I specialise in community gigs.',
+  'Experienced professional ready for gigs around the city.',
+  'अनुभवी पेशेवर जो शहर भर में गिग्स के लिए तैयार है।',
+  CASE
+    WHEN auth_uid IN ('auth-worker-001','auth-worker-002') THEN 'Hyderabad'
+    WHEN auth_uid IN ('auth-worker-003','auth-worker-004') THEN 'Bengaluru'
+    ELSE 'Mumbai'
+  END,
+  17.3850 + (random() / 10),
+  78.4867 + (random() / 10),
+  1200 + (random() * 300),
+  'available',
+  4.2,
+  auth_uid IN ('auth-worker-001','auth-worker-003'),
+  ARRAY['English','Hindi'],
+  0.78,
+  jsonb_build_object(
+    'seed', true,
+    'top_skills', CASE
+      WHEN auth_uid = 'auth-worker-001' THEN jsonb_build_array('cook','vegetarian','gobi')
+      WHEN auth_uid = 'auth-worker-002' THEN jsonb_build_array('cook','hotel')
+      WHEN auth_uid = 'auth-worker-003' THEN jsonb_build_array('carpenter')
+      WHEN auth_uid = 'auth-worker-004' THEN jsonb_build_array('tailor','beautician')
+      ELSE jsonb_build_array('electrician','plumber')
+    END
+  )
 FROM users
 WHERE auth_uid LIKE 'auth-worker-%'
 ON CONFLICT (user_id) DO NOTHING;
@@ -63,7 +97,7 @@ SELECT u.id, s.id,
 FROM users u
 JOIN skills s ON s.slug IN ('cook','vegetarian','gobi','hotel')
 WHERE u.auth_uid = 'auth-worker-001'
-ON CONFLICT (request_id, worker_id) DO NOTHING;
+ON CONFLICT (user_id, skill_id) DO NOTHING;
 
 INSERT INTO user_skills (user_id, skill_id, proficiency, experience_years)
 SELECT u.id, s.id, 'intermediate', 2.5
