@@ -1,16 +1,29 @@
 // Match operations
-// POST /api/match/:id/contact, PATCH /api/match/:id/status, etc.
+import { apiCall } from '../lib/api'
 
 export const matchService = {
-  contactWorker: async (_matchId: string) => {
-    // TODO: Call POST /api/match/:id/contact
+  contactWorker: async (matchId: string) => {
+    return apiCall(`/api/match/${matchId}/contact`, {
+      method: 'POST',
+    })
   },
   
-  updateMatchStatus: async (_matchId: string, _status: string) => {
-    // TODO: Call PATCH /api/match/:id/status
+  updateMatchStatus: async (matchId: string, status: string) => {
+    return apiCall(`/api/match/${matchId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    })
   },
   
-  getWorkerMatches: async (_workerId: string) => {
-    // TODO: Call GET /api/matches?worker_id={id}
+  getWorkerMatches: async (workerId: string) => {
+    return apiCall(`/api/matches?worker_id=${workerId}`, {
+      method: 'GET',
+    })
+  },
+  
+  getEmployerMatches: async (employerId: string) => {
+    return apiCall(`/api/matches?employer_id=${employerId}`, {
+      method: 'GET',
+    })
   },
 }

@@ -1,20 +1,40 @@
 // Employer operations
-// POST /api/onboard/employer, GET /api/employer/me, etc.
+import { apiCall } from '../lib/api'
 
 export const employerService = {
-  createEmployerProfile: async (_data: any) => {
-    // TODO: Call POST /api/onboard/employer
+  createEmployerProfile: async (data: {
+    org_name?: string
+    contact_name: string
+    photo_url?: string
+    location: {
+      city: string
+      lat?: number
+      lng?: number
+    }
+    preferred_languages?: string[]
+  }) => {
+    return apiCall('/api/onboard/employer', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   },
   
   getEmployerProfile: async () => {
-    // TODO: Call GET /api/employer/me
+    return apiCall('/api/employer/me', {
+      method: 'GET',
+    })
   },
   
   getEmployerJobs: async () => {
-    // TODO: Call GET /api/employer/jobs
+    return apiCall('/api/employer/jobs', {
+      method: 'GET',
+    })
   },
   
-  updateEmployerProfile: async (_id: string, _data: any) => {
-    // TODO: Call PATCH /api/employer/:id
+  updateEmployerProfile: async (id: string, data: any) => {
+    return apiCall(`/api/employer/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
   },
 }

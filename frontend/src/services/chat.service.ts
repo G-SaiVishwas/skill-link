@@ -1,12 +1,20 @@
 // Chat/messaging
-// GET /api/messages/:match_id, POST /api/message
+import { apiCall } from '../lib/api'
 
 export const chatService = {
-  getMessages: async (_matchId: string) => {
-    // TODO: Call GET /api/messages/:match_id
+  getMessages: async (matchId: string) => {
+    return apiCall(`/api/messages/${matchId}`, {
+      method: 'GET',
+    })
   },
 
-  sendMessage: async (_matchId: string, _messageText: string) => {
-    // TODO: Call POST /api/message
+  sendMessage: async (matchId: string, messageText: string) => {
+    return apiCall('/api/message', {
+      method: 'POST',
+      body: JSON.stringify({
+        match_id: matchId,
+        message_text: messageText,
+      }),
+    })
   },
 };
