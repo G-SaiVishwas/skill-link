@@ -10,6 +10,129 @@ import { CreateJobRequest, SearchWorkersQuery } from '../types';
 
 export async function jobRoutes(fastify: FastifyInstance) {
   /**
+   * GET /api/workers/jobs
+   * Get job opportunities for logged-in worker
+   */
+  fastify.get(
+    '/workers/jobs',
+    { preHandler: [authMiddleware] },
+    async (request: FastifyRequest<{
+      Querystring: { limit?: number; offset?: number };
+    }>, reply: FastifyReply) => {
+      try {
+        const userId = request.user!.id;
+        const { limit = 20, offset = 0 } = request.query;
+
+        // Get worker profile
+        const workerProfile = await supabaseService.getWorkerProfile(userId);
+
+        if (!workerProfile) {
+          return reply.status(404).send({
+            success: false,
+            error: API_MESSAGES.WORKER.NOT_FOUND,
+          });
+        }
+
+        // Get worker's skills
+        const workerSkills = await supabaseService.getUserSkills(userId);
+        const skillSlugs = workerSkills.map(s => s.slug);
+
+        // Get open jobs
+        const { data: jobs, error } = await supabaseService
+          .getClient()
+          .from('job_requests')
+          .select(`
+            *,
+            employer:employer_profiles!employer_id (
+              id,
+              user_id,
+              contact_name,
+              org_name,
+              photo_url,
+              verified
+            )
+          `)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (error) throw error;
+
+        // Filter and score jobs by skill match and distance
+        const jobsWithScores = (jobs || []).map(job => {
+          // Calculate skill match
+          const jobSkills = (job.ai_skills || []).map((s: any) => 
+            typeof s === 'string' ? s.toLowerCase() : s.slug?.toLowerCase()
+          );
+          const matchedSkills = jobSkills.filter((s: string) => 
+            skillSlugs.some(ws => ws.toLowerCase() === s)
+          );
+          const skillMatch = jobSkills.length > 0 
+            ? (matchedSkills.length / jobSkills.length) * 100 
+            : 0;
+
+          // Calculate distance
+          let distance = null;
+          if (job.latitude && job.longitude && workerProfile.latitude && workerProfile.longitude) {
+            distance = geoService.calculateDistance(
+              workerProfile.latitude,
+              workerProfile.longitude,
+              job.latitude,
+              job.longitude
+            );
+          }
+
+          // Calculate overall match score
+          const distanceScore = distance ? Math.max(0, 100 - (distance * 2)) : 50;
+          const urgencyBoost = job.urgency === 'urgent' ? 20 : job.urgency === 'high' ? 10 : 0;
+          const matchScore = (skillMatch * 0.6) + (distanceScore * 0.3) + urgencyBoost;
+
+          return {
+            id: job.id,
+            employer: {
+              id: job.employer.id,
+              name: job.employer.contact_name || job.employer.org_name,
+              org_name: job.employer.org_name,
+              verified: job.employer.verified || false,
+              photo_url: job.employer.photo_url,
+            },
+            title: job.role_text || 'Job Opportunity',
+            description: job.ai_summary || job.raw_text?.substring(0, 200) || '',
+            skills_required: jobSkills,
+            matched_skills: matchedSkills,
+            location: {
+              city: job.location_city,
+              distance_km: distance,
+            },
+            urgency: job.urgency,
+            preferred_experience: job.preferred_experience,
+            availability_window: job.availability_window,
+            created_at: job.created_at,
+            match_score: Math.round(matchScore),
+            skill_match_percent: Math.round(skillMatch),
+          };
+        });
+
+        // Sort by match score
+        jobsWithScores.sort((a, b) => b.match_score - a.match_score);
+
+        return reply.status(200).send({
+          success: true,
+          data: jobsWithScores,
+          count: jobsWithScores.length,
+          worker_location: workerProfile.location_city,
+        });
+      } catch (error: any) {
+        console.error('Get worker jobs error:', error);
+        return reply.status(500).send({
+          success: false,
+          error: error.message || API_MESSAGES.GENERAL.SERVER_ERROR,
+        });
+      }
+    }
+  );
+
+  /**
    * POST /api/job/create
    * Create job request with AI parsing and auto-matching
    */

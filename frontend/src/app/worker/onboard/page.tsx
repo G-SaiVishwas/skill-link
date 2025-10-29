@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   FaMicrophone,
   FaCamera,
@@ -15,21 +16,42 @@ import {
   FaEnvelope,
   FaBriefcase,
   FaAward,
+  FaStop,
+  FaRedo,
 } from "react-icons/fa";
+import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
 
 type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export default function WorkerOnboarding() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  
+  // Speech recognition hook
+  const {
+    isListening,
+    transcript,
+    interimTranscript,
+    error: speechError,
+    isSupported,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition();
+
+  // Recording duration timer
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
   const [formData, setFormData] = useState({
     // Personal Info
     name: "",
     phone: "",
     email: "",
     // Voice & Photo
-    voiceIntro: null as File | null,
+    voiceTranscript: "",
     photo: null as File | null,
     photoPreview: "",
     // Skills & Experience
@@ -41,6 +63,58 @@ export default function WorkerOnboarding() {
     hourlyRate: "",
     bio: "",
   });
+
+  // Timer for recording duration
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isListening) {
+      interval = setInterval(() => {
+        setRecordingDuration((prev) => {
+          const newDuration = prev + 1;
+          
+          // Auto-stop after 15 seconds
+          if (newDuration >= 15) {
+            stopListening();
+            return 15;
+          }
+          
+          return newDuration;
+        });
+      }, 1000);
+    } else {
+      setRecordingDuration(0);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isListening, stopListening]);
+
+  // Save transcript when recording stops
+  useEffect(() => {
+    if (!isListening && transcript) {
+      setFormData((prev) => ({
+        ...prev,
+        voiceTranscript: transcript,
+      }));
+    }
+  }, [isListening, transcript]);
+
+  const handleStartRecording = () => {
+    resetTranscript();
+    setFormData((prev) => ({ ...prev, voiceTranscript: "" }));
+    startListening();
+  };
+
+  const handleStopRecording = () => {
+    stopListening();
+  };
+
+  const handleReRecord = () => {
+    resetTranscript();
+    setFormData((prev) => ({ ...prev, voiceTranscript: "" }));
+  };
 
   const totalSteps = 7;
 
@@ -76,11 +150,80 @@ export default function WorkerOnboarding() {
     }
   };
 
-  const handleComplete = () => {
-    // Save profile data
-    console.log("Profile completed:", formData);
-    // Navigate to jobs page
-    navigate("/worker/jobs");
+  const handleComplete = async () => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      const token = localStorage.getItem('session_token');
+      if (!token) {
+        setSubmitError('Not authenticated. Please login again.');
+        navigate('/auth');
+        return;
+      }
+
+      // Step 1: Upload photo if provided
+      let photoUrl = '';
+      if (formData.photo) {
+        const photoFormData = new FormData();
+        photoFormData.append('file', formData.photo);
+
+        const photoResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/photo`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: photoFormData,
+        });
+
+        if (!photoResponse.ok) {
+          throw new Error('Failed to upload photo');
+        }
+
+        const photoData = await photoResponse.json();
+        photoUrl = photoData.url;
+      }
+
+      // Step 2: Create worker profile
+      const profileData = {
+        display_name: formData.name,
+        intro_text: formData.voiceTranscript || formData.bio || 'No introduction provided',
+        photo_url: photoUrl || undefined,
+        location: {
+          city: formData.city,
+        },
+        rate_per_hour: formData.hourlyRate ? parseInt(formData.hourlyRate) : undefined,
+        languages: ['English', 'Hindi'], // Default languages
+      };
+
+      const profileResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/onboard/worker`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!profileResponse.ok) {
+        const errorData = await profileResponse.json();
+        throw new Error(errorData.error || 'Failed to create profile');
+      }
+
+      const result = await profileResponse.json();
+      console.log('Profile created successfully:', result);
+
+      // Refresh user data to update role in auth context
+      await refreshUser();
+
+      // Navigate to jobs page
+      navigate('/worker/jobs');
+    } catch (error: any) {
+      console.error('Onboarding error:', error);
+      setSubmitError(error.message || 'Failed to complete onboarding. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const suggestedSkills = [
@@ -236,27 +379,126 @@ export default function WorkerOnboarding() {
                   your voice to detect skills and create a professional profile.
                 </p>
 
+                {/* Browser Support Check */}
+                {!isSupported && (
+                  <div className="mb-6 px-6 py-4 rounded-xl bg-red-100 border border-red-300 text-red-700">
+                    ⚠️ Voice recording is not supported in this browser. Please use Chrome, Edge, or Safari.
+                  </div>
+                )}
+
+                {/* Error Display */}
+                {speechError && (
+                  <div className="mb-6 px-6 py-4 rounded-xl bg-red-100 border border-red-300 text-red-700">
+                    {speechError}
+                    <p className="text-sm mt-2">💡 You can type your introduction below instead.</p>
+                  </div>
+                )}
+
+                {/* Text Input Fallback */}
+                {(speechError || !isSupported || formData.voiceTranscript) && (
+                  <div className="mb-6 max-w-2xl mx-auto">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Or type your introduction:
+                    </label>
+                    <textarea
+                      value={formData.voiceTranscript}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          voiceTranscript: e.target.value,
+                        }))
+                      }
+                      placeholder="Tell us about your skills, experience, and what kind of work you do..."
+                      className="w-full px-6 py-4 rounded-xl backdrop-blur-xl bg-white/70 border border-white/80 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-lg min-h-[120px]"
+                      rows={4}
+                    />
+                  </div>
+                )}
+
                 <div className="flex flex-col items-center gap-6">
-                  <button
-                    onClick={() => setIsRecording(!isRecording)}
-                    className={`w-32 h-32 rounded-full flex items-center justify-center shadow-2xl transform transition-all ${
-                      isRecording
-                        ? "bg-red-500 animate-pulse scale-110"
-                        : "bg-linear-to-br from-indigo-500 to-purple-600 hover:scale-105"
-                    }`}
-                  >
-                    <FaMicrophone className="text-5xl text-white" />
-                  </button>
+                  {/* Recording Button */}
+                  <div className="relative">
+                    <button
+                      onClick={isListening ? handleStopRecording : handleStartRecording}
+                      disabled={!isSupported}
+                      className={`w-32 h-32 rounded-full flex items-center justify-center shadow-2xl transform transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isListening
+                          ? "bg-red-500 animate-pulse scale-110"
+                          : "bg-linear-to-br from-indigo-500 to-purple-600 hover:scale-105"
+                      }`}
+                    >
+                      {isListening ? (
+                        <FaStop className="text-5xl text-white" />
+                      ) : (
+                        <FaMicrophone className="text-5xl text-white" />
+                      )}
+                    </button>
+
+                    {/* Recording Duration */}
+                    {isListening && (
+                      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                        {recordingDuration}s / 15s
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instructions */}
                   <p className="text-sm text-gray-600">
-                    {isRecording
-                      ? "Recording... Tap to stop"
-                      : "Tap to start recording"}
+                    {isListening
+                      ? "🎤 Listening... Tap to stop"
+                      : formData.voiceTranscript
+                      ? "✅ Recording complete! Review below or re-record"
+                      : "🎙️ Tap microphone to start recording"}
                   </p>
 
-                  {formData.voiceIntro && (
-                    <div className="mt-4 px-6 py-3 rounded-xl bg-green-100 border border-green-300 text-green-700 font-semibold">
-                      <FaCheckCircle className="inline mr-2" />
-                      Voice intro recorded!
+                  {/* Interim Transcript (Live Preview) */}
+                  {isListening && interimTranscript && (
+                    <div className="mt-4 px-6 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm italic max-w-xl">
+                      "{interimTranscript}..."
+                    </div>
+                  )}
+
+                  {/* Final Transcript Display */}
+                  {formData.voiceTranscript && !isListening && (
+                    <div className="mt-6 w-full max-w-2xl">
+                      <div className="px-6 py-4 rounded-xl bg-green-50 border border-green-300">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FaCheckCircle className="text-green-600 text-xl" />
+                            <h3 className="text-lg font-semibold text-green-800">
+                              Your Voice Transcript
+                            </h3>
+                          </div>
+                          <button
+                            onClick={handleReRecord}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-green-300 text-green-700 hover:bg-green-100 transition-colors text-sm font-medium"
+                          >
+                            <FaRedo />
+                            Re-record
+                          </button>
+                        </div>
+                        <p className="text-gray-700 leading-relaxed text-left">
+                          "{formData.voiceTranscript}"
+                        </p>
+                        <p className="text-xs text-gray-500 mt-3 text-left">
+                          💡 This transcript will be used to detect your skills and generate your professional bio.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tips */}
+                  {!formData.voiceTranscript && !isListening && (
+                    <div className="mt-8 px-6 py-4 rounded-xl bg-blue-50 border border-blue-200 text-left max-w-xl">
+                      <h4 className="font-semibold text-blue-800 mb-2">
+                        💡 Recording Tips:
+                      </h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Speak clearly about your skills and experience</li>
+                        <li>• Mention specific tools or technologies you know</li>
+                        <li>• Keep it natural - just introduce yourself!</li>
+                        <li>• Example: "Hi, I'm a plumber with 5 years experience..."</li>
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -578,13 +820,22 @@ export default function WorkerOnboarding() {
           </motion.div>
         </AnimatePresence>
 
+        {/* Error Message */}
+        {submitError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-700 text-sm font-medium text-center">
+              {submitError}
+            </p>
+          </div>
+        )}
+
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center">
           <button
             onClick={handlePrev}
-            disabled={currentStep === 1}
+            disabled={currentStep === 1 || isSubmitting}
             className={`px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center gap-2 transition-all ${
-              currentStep === 1
+              currentStep === 1 || isSubmitting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-white/70 text-gray-800 border border-gray-300 hover:shadow-xl hover:scale-105"
             }`}
@@ -596,7 +847,8 @@ export default function WorkerOnboarding() {
           {currentStep < totalSteps ? (
             <button
               onClick={handleNext}
-              className="px-8 py-3 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+              disabled={isSubmitting}
+              className="px-8 py-3 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               Next
               <FaArrowRight />
@@ -604,10 +856,20 @@ export default function WorkerOnboarding() {
           ) : (
             <button
               onClick={handleComplete}
-              className="px-8 py-3 rounded-xl bg-linear-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+              disabled={isSubmitting}
+              className="px-8 py-3 rounded-xl bg-linear-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              <FaCheckCircle />
-              Complete & Find Jobs
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating Profile...
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle />
+                  Complete & Find Jobs
+                </>
+              )}
             </button>
           )}
         </div>

@@ -146,6 +146,10 @@ export async function workerRoutes(fastify: FastifyInstance) {
           generated_summary: bioResult.english_bio,
         });
 
+        // Update user's role to 'worker'
+        await supabaseService.updateUserRole(userId, 'worker');
+        console.log('✅ User role updated to worker');
+
         return reply.status(201).send({
           success: true,
           message: API_MESSAGES.WORKER.PROFILE_CREATED,
@@ -186,14 +190,30 @@ export async function workerRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Get user info (phone, email)
+        const user = await supabaseService.getUserByAuthUid(userId);
+
         // Get skills
         const skills = await supabaseService.getUserSkills(userId);
+
+        // Get stats (placeholder - can be enhanced later)
+        const stats = {
+          jobs_completed: 0,
+          completion_rate: 0,
+          avg_response_time: 'N/A',
+          avg_rating: 0,
+        };
 
         return reply.status(200).send({
           success: true,
           data: {
-            ...workerProfile,
+            worker: workerProfile,
             skills,
+            user: {
+              phone: user?.phone || '',
+              email: user?.email || null,
+            },
+            stats,
           },
         });
       } catch (error: any) {

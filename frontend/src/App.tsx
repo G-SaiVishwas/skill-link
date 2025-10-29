@@ -1,5 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/landing";
+import AuthPage from "./app/auth/page";
+import AuthCallbackPage from "./app/auth/callback/page";
+import CleanupPage from "./app/auth/cleanup/page";
 import WorkerOnboarding from "./app/worker/onboard/page";
 import EmployerOnboarding from "./app/employer/onboard/page";
 import JobsPage from "./app/worker/jobs/page";
@@ -14,6 +17,10 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/login" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/cleanup" element={<CleanupPage />} />
         <Route path="/worker/onboard" element={<WorkerOnboarding />} />
         <Route path="/worker/jobs" element={<JobsPage />} />
         <Route path="/worker/profile" element={<WorkerProfile />} />

@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 import {
   FaRobot,
   FaMicrophone,
@@ -13,6 +15,21 @@ import {
 } from "react-icons/fa";
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Only redirect users who have completed onboarding (have a role)
+    if (user && !loading && user.role) {
+      if (user.role === 'worker') {
+        navigate('/worker/dashboard');
+      } else if (user.role === 'employer') {
+        navigate('/employer/dashboard');
+      }
+    }
+    // If user exists but has no role, let them stay on landing to choose
+  }, [user, loading, navigate]);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-800 font-sans relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -68,9 +85,11 @@ export default function LandingPage() {
               Contact
             </a>
           </div>
-          <button className="px-6 py-2.5 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-            Login
-          </button>
+          <Link to="/auth">
+            <button className="px-6 py-2.5 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+              Login
+            </button>
+          </Link>
         </div>
       </nav>
 

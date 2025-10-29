@@ -29,7 +29,7 @@ class SupabaseService {
       .eq('auth_uid', auth_uid)
       .single();
 
-    if (error) throw error;
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
     return data;
   }
 
@@ -46,13 +46,25 @@ class SupabaseService {
 
   async createUser(userData: {
     auth_uid: string;
-    role: string;
+    role: string | null;
     phone: string;
     email?: string;
   }) {
     const { data, error } = await this.client
       .from('users')
       .insert(userData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateUserRole(userId: string, role: 'worker' | 'employer') {
+    const { data, error } = await this.client
+      .from('users')
+      .update({ role })
+      .eq('id', userId)
       .select()
       .single();
 

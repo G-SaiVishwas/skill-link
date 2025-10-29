@@ -1,12 +1,18 @@
 // Authentication service
-// POST /api/auth/login, POST /api/auth/verify
+import { apiCall } from '../lib/api'
 
 export const authService = {
-  sendOTP: async (_phone: string) => {
-    // TODO: Call POST /api/auth/login
+  // Get current user from backend
+  getCurrentUser: async () => {
+    return apiCall('/api/auth/me', {
+      method: 'GET',
+    })
   },
-  
-  verifyOTP: async (_phone: string, _otp: string) => {
-    // TODO: Call POST /api/auth/verify
+
+  // Logout (handled by Supabase on client side)
+  logout: async () => {
+    return apiCall('/api/auth/logout', {
+      method: 'POST',
+    })
   },
 }

@@ -19,17 +19,25 @@ class AuthService {
    */
   verifySupabaseToken(token: string): SupabaseJWTPayload {
     try {
+      console.log('🔐 Verifying Supabase token...');
+      console.log('JWT Secret (first 20 chars):', config.supabase.jwtSecret.substring(0, 20) + '...');
+      
       const decoded = jwt.verify(token, config.supabase.jwtSecret, {
         algorithms: ['HS256'],
       }) as SupabaseJWTPayload;
       
+      console.log('✅ Token decoded successfully');
+      console.log('Token payload:', { sub: decoded.sub, email: decoded.email, exp: decoded.exp });
+      
       // Check if token is expired
       if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        console.log('❌ Token is expired');
         throw new Error('Token expired');
       }
       
       return decoded;
     } catch (error) {
+      console.error('❌ Token verification failed:', error);
       throw new Error('Invalid or expired Supabase token');
     }
   }

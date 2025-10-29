@@ -21,8 +21,12 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/session', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authHeader = request.headers.authorization;
+      
+      console.log('📨 Auth session request received');
+      console.log('Authorization header:', authHeader ? 'Present' : 'Missing');
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('❌ No authorization header');
         return reply.status(401).send({
           success: false,
           error: 'Authorization header required',
@@ -30,21 +34,27 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       const token = authHeader.substring(7);
+      console.log('🔑 Token received (first 50 chars):', token.substring(0, 50) + '...');
 
       // Verify and extract user info from Supabase token
       const tokenData = authService.extractUserFromToken(token);
+      console.log('✅ Token verified, auth_uid:', tokenData.authUid);
 
       // Check if user exists
       let user = await supabaseService.getUserByAuthUid(tokenData.authUid);
 
       if (!user) {
         // Create new user from Google OAuth data
+        console.log('👤 Creating new user in database...');
         user = await supabaseService.createUser({
           auth_uid: tokenData.authUid,
           email: tokenData.email,
           phone: tokenData.phone || '',
-          role: '', // Will be set during onboarding
+          role: null, // Will be set during onboarding (null is valid, empty string is not)
         });
+        console.log('✅ User created successfully:', user.id);
+      } else {
+        console.log('✅ User found in database:', user.id);
       }
 
       return reply.status(200).send({

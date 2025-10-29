@@ -1,10 +1,6 @@
 // Auth state (current user, login, logout)
+import { useAuth as useAuthContext } from '../context/AuthContext'
 
 export function useAuth() {
-  // TODO: Implement auth hook
-  return {
-    user: null,
-    login: () => {},
-    logout: () => {},
-  }
+  return useAuthContext()
 }
