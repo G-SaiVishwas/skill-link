@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch } from "react-icons/fa";
+import { useAuth } from "../../../hooks/useAuth";
+import { FaSearch, FaSignOutAlt } from "react-icons/fa";
 
 export default function EmployerDashboardPage() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   const handleFindMatch = () => {
     if (selectedCategory && selectedLocation) {
@@ -28,7 +35,16 @@ export default function EmployerDashboardPage() {
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-purple-600">
             SkillLink
           </h1>
-          <p className="text-sm text-gray-600">Employer Dashboard</p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-600">Employer Dashboard</p>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-lg bg-white/80 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+            >
+              <FaSignOutAlt />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 

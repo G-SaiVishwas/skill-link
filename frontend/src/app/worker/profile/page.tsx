@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   FaMapMarkerAlt,
   FaPhone,
@@ -10,10 +12,18 @@ import {
   FaCheckCircle,
   FaAward,
   FaUsers,
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 export default function WorkerProfile() {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   // Sample profile data
   const profile = {
@@ -112,6 +122,17 @@ export default function WorkerProfile() {
       <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
+        {/* Top Bar with Logout */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+          >
+            <FaSignOutAlt />
+            Logout
+          </button>
+        </div>
+
         {/* Header Card */}
         <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 overflow-hidden mb-6">
           {/* Cover Background */}

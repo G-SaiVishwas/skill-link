@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,14 +15,32 @@ import {
   FaPhone,
   FaEnvelope,
   FaHome,
+  FaStop,
+  FaRedo,
 } from "react-icons/fa";
+import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
 
 type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 export default function EmployerOnboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
-  const [isRecording, setIsRecording] = useState(false);
+  
+  // Speech recognition hook
+  const {
+    isListening,
+    transcript,
+    interimTranscript,
+    error: speechError,
+    isSupported,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition();
+
+  // Recording duration timer
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  
   const [hiringType, setHiringType] = useState<"company" | "personal">(
     "company"
   );
@@ -31,6 +49,8 @@ export default function EmployerOnboarding() {
     name: "",
     phone: "",
     email: "",
+    // Voice intro
+    voiceTranscript: "",
     // Company/Organization Details
     companyName: "",
     companyLogo: null as File | null,
@@ -42,6 +62,52 @@ export default function EmployerOnboarding() {
     description: "",
     jobTitle: "",
   });
+
+  // Timer for recording duration
+  useEffect(() => {
+    let interval: number | undefined;
+    
+    if (isListening) {
+      interval = window.setInterval(() => {
+        setRecordingDuration((prev) => {
+          const newDuration = prev + 1;
+          
+          // Auto-stop after 20 seconds
+          if (newDuration >= 20) {
+            stopListening();
+            return 20;
+          }
+          
+          return newDuration;
+        });
+      }, 1000);
+    } else {
+      setRecordingDuration(0);
+    }
+
+    return () => {
+      if (interval !== undefined) window.clearInterval(interval);
+    };
+  }, [isListening, stopListening]);
+
+  // Save transcript when recording stops
+  useEffect(() => {
+    if (!isListening && transcript) {
+      setFormData((prev) => ({
+        ...prev,
+        voiceTranscript: transcript,
+      }));
+    }
+  }, [isListening, transcript]);
+
+  const handleStartRecording = () => {
+    resetTranscript();
+    startListening();
+  };
+
+  const handleStopRecording = () => {
+    stopListening();
+  };
 
   const totalSteps = 6;
 
@@ -139,7 +205,7 @@ export default function EmployerOnboarding() {
             transition={{ duration: 0.3 }}
             className="backdrop-blur-2xl bg-white/60 border border-white/70 rounded-3xl p-8 md:p-12 shadow-2xl mb-8"
           >
-            {/* Step 5: Voice Intro (Optional) */}
+            {/* Step 1: Voice Intro (Optional) */}
             {currentStep === 1 && (
               <div>
                 <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-linear-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg">
@@ -150,37 +216,96 @@ export default function EmployerOnboarding() {
                 </h2>
                 <p className="text-gray-600 mb-8 text-center max-w-xl mx-auto">
                   Record a short voice message to help workers know who they'll
-                  be working with.
+                  be working with. Talk about yourself and what you're looking for.
                 </p>
+
+                {!isSupported && (
+                  <div className="max-w-lg mx-auto mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm text-center">
+                      ⚠️ Voice recording is not supported in your browser. Please use Chrome, Edge, or Safari.
+                    </p>
+                  </div>
+                )}
+
+                {speechError && (
+                  <div className="max-w-lg mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-800 text-sm text-center">
+                      ❌ {speechError}
+                    </p>
+                  </div>
+                )}
 
                 <div className="max-w-lg mx-auto">
                   <div className="backdrop-blur-xl bg-white/70 border border-white/80 rounded-2xl p-8">
                     <div className="text-center">
-                      <button
-                        onClick={() => setIsRecording(!isRecording)}
-                        className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 transition-all transform hover:scale-110 shadow-2xl ${
-                          isRecording
-                            ? "bg-red-500 animate-pulse"
-                            : "bg-linear-to-br from-orange-400 to-amber-500"
-                        }`}
-                      >
-                        <FaMicrophone className="text-4xl text-white" />
-                      </button>
+                      {!isListening ? (
+                        <button
+                          onClick={handleStartRecording}
+                          disabled={!isSupported}
+                          className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 transition-all transform hover:scale-110 shadow-2xl ${
+                            !isSupported
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-linear-to-br from-orange-400 to-amber-500 hover:shadow-3xl"
+                          }`}
+                        >
+                          <FaMicrophone className="text-4xl text-white" />
+                        </button>
+                      ) : (
+                        <div className="space-y-4">
+                          <button
+                            onClick={handleStopRecording}
+                            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto bg-red-500 animate-pulse shadow-2xl hover:bg-red-600 transition-all"
+                          >
+                            <FaStop className="text-4xl text-white" />
+                          </button>
+                          <div className="text-lg font-semibold text-red-600">
+                            Recording... {recordingDuration}s / 20s
+                          </div>
+                        </div>
+                      )}
+                      
                       <p className="text-lg font-semibold text-gray-800 mb-2">
-                        {isRecording ? "Recording..." : "Tap to Record"}
+                        {isListening ? "Listening..." : formData.voiceTranscript ? "Recording Complete!" : "Tap to Start"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {isRecording
+                        {isListening
                           ? "Speak clearly about yourself and what you're looking for"
                           : "15-20 seconds is perfect"}
                       </p>
+
+                      {/* Show transcript */}
+                      {(transcript || interimTranscript || formData.voiceTranscript) && (
+                        <div className="mt-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                          <p className="text-sm font-semibold text-orange-700 mb-2">
+                            {isListening ? "Live Transcript:" : "Your Recording:"}
+                          </p>
+                          <p className="text-gray-700 italic">
+                            "{isListening ? (transcript + " " + interimTranscript) : formData.voiceTranscript}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Re-record button */}
+                      {formData.voiceTranscript && !isListening && (
+                        <button
+                          onClick={handleStartRecording}
+                          className="mt-4 px-6 py-2 rounded-lg bg-white border-2 border-orange-400 text-orange-600 font-semibold hover:bg-orange-50 transition-all flex items-center gap-2 mx-auto"
+                        >
+                          <FaRedo />
+                          Re-record
+                        </button>
+                      )}
                     </div>
                   </div>
+
+                  <p className="text-center text-sm text-gray-500 mt-4">
+                    Skip this step if you prefer - you can always add it later
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Step 1: Personal Details */}
+            {/* Step 5: Personal Details */}
             {currentStep === 5 && (
               <div>
                 <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg">
