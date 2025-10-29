@@ -62,10 +62,10 @@ export default function WorkerOnboarding() {
 
   // Timer for recording duration
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number | undefined;
     
     if (isListening) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setRecordingDuration((prev) => {
           const newDuration = prev + 1;
           
@@ -83,7 +83,7 @@ export default function WorkerOnboarding() {
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (interval !== undefined) window.clearInterval(interval);
     };
   }, [isListening, stopListening]);
 

@@ -7,24 +7,24 @@ export async function apiCall(endpoint: string, options: RequestInit = {}) {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
 
-  // Build headers - only add Content-Type if there's a body
-  const headers: HeadersInit = {
-    ...(options.headers || {}),
+  // Build headers as Record then cast to HeadersInit
+  const headersObj: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {}),
   }
 
   // Only add Content-Type if we have a body
   if (options.body) {
-    headers['Content-Type'] = 'application/json'
+    headersObj['Content-Type'] = 'application/json'
   }
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    headersObj['Authorization'] = `Bearer ${token}`
   }
 
   // Make request to backend
   const response = await fetch(`${env.apiUrl}${endpoint}`, {
     ...options,
-    headers,
+    headers: headersObj as HeadersInit,
   })
 
   if (!response.ok) {

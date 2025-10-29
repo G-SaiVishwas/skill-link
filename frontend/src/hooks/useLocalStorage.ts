@@ -1,5 +1,5 @@
 // Persistent state helper
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // Get from local storage then parse stored json or return initialValue

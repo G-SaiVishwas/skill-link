@@ -2,10 +2,11 @@
 
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { apiCall } from '../lib/api'
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 
 interface User {
   id: string
@@ -72,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null)
       // Sign out to clear any expired session from Supabase
       await supabase.auth.signOut({ scope: 'local' })
+      return
+    }
+
+    // TypeScript guard: ensure session is not null after validation
+    if (!supabaseSession) {
       return
     }
 
