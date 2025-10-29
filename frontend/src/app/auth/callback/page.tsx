@@ -16,9 +16,9 @@ export default function AuthCallbackPage() {
         } else if (user.role === 'employer') {
           navigate('/employer/dashboard')
         } else {
-          // New user without role - stay on home to choose role
-          console.log('New user detected, redirecting to home for onboarding')
-          navigate('/', { replace: true })
+          // New user without role - go to auth page to choose role
+          console.log('New user detected, redirecting to auth for role selection')
+          navigate('/auth', { replace: true })
         }
       } else {
         // Auth failed, redirect to login

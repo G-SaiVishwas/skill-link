@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import LandingPage from "./pages/landing";
 import AuthPage from "./app/auth/page";
 import AuthCallbackPage from "./app/auth/callback/page";
@@ -10,9 +11,19 @@ import WorkerProfile from "./app/worker/profile/page";
 import EmployerDashboard from "./app/employer/dashboard/page";
 import EmployerMatches from "./app/employer/matches/page";
 import Settings from "./app/employer/settings/page";
+import { healthCheckService } from "./services/healthCheck.service";
 import "./App.css";
 
 export default function App() {
+  // Start health check service to keep backend alive
+  useEffect(() => {
+    healthCheckService.start();
+    
+    return () => {
+      healthCheckService.stop();
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>

@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
 import { FaHardHat, FaBriefcase } from 'react-icons/fa'
@@ -7,6 +7,8 @@ import { FaHardHat, FaBriefcase } from 'react-icons/fa'
 export default function AuthPage() {
   const { user, loading, signInWithGoogle, signOut } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const intent = searchParams.get('intent') // 'worker' or 'employer'
 
   useEffect(() => {
     // Redirect authenticated users who have already chosen a role
@@ -16,9 +18,16 @@ export default function AuthPage() {
       } else if (user.role === 'employer') {
         navigate('/employer/dashboard')
       }
+    } else if (user && !loading && !user.role && intent) {
+      // User just signed in and has an intent - navigate to onboarding
+      if (intent === 'worker') {
+        navigate('/worker/onboard')
+      } else if (intent === 'employer') {
+        navigate('/employer/onboard')
+      }
     }
-    // If user is signed in but has no role, stay on this page to choose
-  }, [user, loading, navigate])
+    // If user is signed in but has no role and no intent, stay on this page to choose
+  }, [user, loading, navigate, intent])
 
   if (loading) {
     return (

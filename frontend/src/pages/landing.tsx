@@ -128,7 +128,7 @@ export default function LandingPage() {
                 Showcase your skills with AI-powered profiles. Get hired faster
                 with voice intros and instant matches.
               </p>
-              <Link to="/worker/onboard">
+              <Link to="/auth?intent=worker">
                 <button className="w-full px-6 py-3 rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
                   Create Your SkillCard
                 </button>
@@ -149,7 +149,7 @@ export default function LandingPage() {
                 Post jobs with voice or text. AI finds perfect matches instantly
                 from verified local talent.
               </p>
-              <Link to="/employer/onboard">
+              <Link to="/auth?intent=employer">
                 <button className="w-full px-6 py-3 rounded-xl bg-linear-to-r from-purple-500 to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
                   Post a Job Now
                 </button>

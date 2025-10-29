@@ -135,5 +135,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       message: 'Logged out successfully',
     });
   });
+
+  /**
+   * GET /api/auth/health
+   * Health check endpoint (no auth required)
+   * Used to keep Render server alive
+   */
+  fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      success: true,
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+    });
+  });
 }
 
