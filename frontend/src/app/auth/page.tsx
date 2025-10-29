@@ -12,7 +12,7 @@ export default function AuthPage() {
     // Redirect authenticated users who have already chosen a role
     if (user && !loading && user.role) {
       if (user.role === 'worker') {
-        navigate('/worker/jobs')
+        navigate('/worker/dashboard')
       } else if (user.role === 'employer') {
         navigate('/employer/dashboard')
       }

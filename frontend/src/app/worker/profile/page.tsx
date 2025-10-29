@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
+import { useState } from "react";
 import {
   FaMapMarkerAlt,
   FaPhone,
@@ -12,161 +10,97 @@ import {
   FaCheckCircle,
   FaAward,
   FaUsers,
-  FaSpinner,
-  FaExclamationCircle,
 } from "react-icons/fa";
 
-interface WorkerProfile {
-  id: string;
-  user_id: string;
-  display_name: string;
-  photo_url: string | null;
-  voice_intro_url: string | null;
-  voice_transcript: string | null;
-  bio_generated: string | null;
-  bio_generated_local: string | null;
-  location_city: string;
-  latitude: number | null;
-  longitude: number | null;
-  suggested_rate: number | null;
-  availability_status: string;
-  trustrank: number;
-  verified: boolean;
-  languages: string[];
-  voice_sentiment_score: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserSkill {
-  id: string;
-  slug: string;
-  name: string;
-  proficiency_level: string;
-  years_experience: number;
-}
-
-interface ProfileData {
-  worker: WorkerProfile;
-  skills: UserSkill[];
-  user: {
-    phone: string;
-    email: string | null;
-  };
-  stats: {
-    jobs_completed: number;
-    completion_rate: number;
-    avg_response_time: string;
-    avg_rating: number;
-  };
-}
-
 export default function WorkerProfile() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/worker/me`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('session_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // No profile found - redirect to onboarding
-          navigate('/worker/onboard');
-          return;
-        }
-        throw new Error('Failed to fetch profile');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setProfileData(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to load profile');
-      }
-    } catch (err: any) {
-      console.error('Error fetching profile:', err);
-      setError(err.message || 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
+  // Sample profile data
+  const profile = {
+    name: "Rajesh Kumar",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh",
+    specialization: "Residential Plumbing",
+    experience: "5-10 years",
+    city: "Mumbai, Maharashtra",
+    phone: "+91 98765 43210",
+    email: "rajesh.kumar@example.com",
+    hourlyRate: "₹500-700",
+    rating: 4.8,
+    totalJobs: 127,
+    completionRate: 98,
+    responseTime: "< 2 hours",
+    verified: true,
+    skills: [
+      "Plumbing",
+      "Bathroom Fitting",
+      "Pipe Installation",
+      "Water Heater Repair",
+      "Drainage Systems",
+      "Emergency Repairs",
+    ],
+    bio: "Experienced plumber with over 8 years of hands-on experience in residential and commercial plumbing. Specialized in modern bathroom installations, pipe repairs, and emergency plumbing services. Committed to delivering high-quality work with attention to detail.",
+    languages: ["Hindi", "English", "Marathi"],
+    availability: "Available Mon-Sat, 8 AM - 6 PM",
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <FaSpinner className="text-5xl text-indigo-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !profileData) {
-    return (
-      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <FaExclamationCircle className="text-5xl text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Profile</h2>
-          <p className="text-gray-600 mb-6">{error || 'Failed to load profile data'}</p>
-          <button
-            onClick={fetchProfile}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const { worker, skills, user: userData, stats } = profileData;
-
-  const statsDisplay = [
+  const stats = [
     {
       icon: FaBriefcase,
       label: "Jobs Completed",
-      value: stats?.jobs_completed || 0,
+      value: profile.totalJobs,
       color: "text-indigo-600",
       bg: "bg-indigo-50",
     },
     {
       icon: FaCheckCircle,
       label: "Completion Rate",
-      value: `${stats?.completion_rate || 0}%`,
+      value: `${profile.completionRate}%`,
       color: "text-green-600",
       bg: "bg-green-50",
     },
     {
       icon: FaClock,
       label: "Response Time",
-      value: stats?.avg_response_time || "N/A",
+      value: profile.responseTime,
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
     {
       icon: FaStar,
       label: "Average Rating",
-      value: stats?.avg_rating?.toFixed(1) || "New",
+      value: profile.rating,
       color: "text-yellow-600",
       bg: "bg-yellow-50",
+    },
+  ];
+
+  const reviews = [
+    {
+      id: 1,
+      employer: "Priya Sharma",
+      rating: 5,
+      date: "2 weeks ago",
+      comment:
+        "Excellent work! Very professional and completed the bathroom renovation ahead of schedule. Highly recommended!",
+      jobType: "Bathroom Renovation",
+    },
+    {
+      id: 2,
+      employer: "Amit Patel",
+      rating: 5,
+      date: "1 month ago",
+      comment:
+        "Quick response and fixed the plumbing issue efficiently. Will definitely hire again.",
+      jobType: "Emergency Pipe Repair",
+    },
+    {
+      id: 3,
+      employer: "Sneha Reddy",
+      rating: 4,
+      date: "2 months ago",
+      comment:
+        "Good service and reasonable pricing. Minor delay but quality work overall.",
+      jobType: "Kitchen Sink Installation",
     },
   ];
 
@@ -192,12 +126,12 @@ export default function WorkerProfile() {
                 <div className="relative z-20">
                   <div className="w-36 h-36 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/50 shadow-2xl p-1">
                     <img
-                      src={worker.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${worker.display_name}`}
-                      alt={worker.display_name}
-                      className="w-full h-full rounded-[1.3rem] bg-white object-cover"
+                      src={profile.avatar}
+                      alt={profile.name}
+                      className="w-full h-full rounded-[1.3rem] bg-white"
                     />
                   </div>
-                  {worker.verified && (
+                  {profile.verified && (
                     <div className="absolute -bottom-2 -right-2 w-11 h-11 bg-linear-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center border-4 border-white/90 shadow-xl backdrop-blur-sm">
                       <FaCheckCircle className="text-white text-lg" />
                     </div>
@@ -208,37 +142,33 @@ export default function WorkerProfile() {
                 <div className="mb-4 md:mb-0 relative z-20">
                   <div className="flex items-center gap-3 mb-2">
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                      {worker.display_name}
+                      {profile.name}
                     </h1>
-                    {worker.verified && (
+                    {profile.verified && (
                       <span className="px-3 py-1.5 bg-green-500/10 backdrop-blur-sm text-green-700 text-xs font-semibold rounded-full border border-green-200/50">
                         Verified
                       </span>
                     )}
                   </div>
                   <p className="text-gray-600 font-medium text-lg mb-3">
-                    {skills.length > 0 ? skills[0].name : 'Service Provider'}
+                    {profile.specialization}
                   </p>
                   <div className="flex flex-wrap items-center gap-5 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <FaMapMarkerAlt className="text-red-500" />
-                      <span className="font-medium">{worker.location_city}</span>
+                      <span className="font-medium">{profile.city}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FaBriefcase className="text-indigo-500" />
-                      <span className="font-medium">
-                        {skills.length > 0 && skills[0].years_experience 
-                          ? `${skills[0].years_experience}+ years` 
-                          : 'Experienced'}
-                      </span>
+                      <span className="font-medium">{profile.experience}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <FaStar className="text-yellow-500" />
                       <span className="font-bold text-gray-900">
-                        {worker.trustrank ? (worker.trustrank * 20 / 100 * 5).toFixed(1) : 'New'}
+                        {profile.rating}
                       </span>
                       <span className="text-gray-500">
-                        ({stats?.jobs_completed || 0} jobs)
+                        ({profile.totalJobs} jobs)
                       </span>
                     </div>
                   </div>
@@ -262,7 +192,7 @@ export default function WorkerProfile() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {statsDisplay.map((stat, index) => {
+              {stats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
                   <div
@@ -297,16 +227,8 @@ export default function WorkerProfile() {
                 About Me
               </h2>
               <p className="text-gray-700 leading-relaxed text-[15px]">
-                {worker.bio_generated || worker.voice_transcript || 'No bio available yet. Complete your profile to add a bio.'}
+                {profile.bio}
               </p>
-              {worker.bio_generated_local && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500 mb-2 font-medium">Local Language:</p>
-                  <p className="text-gray-700 leading-relaxed text-[15px]">
-                    {worker.bio_generated_local}
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Skills Section */}
@@ -315,23 +237,16 @@ export default function WorkerProfile() {
                 <FaAward className="text-indigo-600" />
                 Skills & Expertise
               </h2>
-              {skills.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  {skills.map((skill) => (
-                    <span
-                      key={skill.id}
-                      className="px-5 py-2.5 bg-indigo-500/10 backdrop-blur-sm text-indigo-700 rounded-xl text-sm font-semibold border border-indigo-200/50 hover:bg-indigo-500/20 hover:border-indigo-300/50 transition-all hover:scale-105 group relative"
-                    >
-                      {skill.name}
-                      <span className="ml-2 text-xs text-indigo-500/70">
-                        {skill.years_experience}y • {skill.proficiency_level}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No skills added yet. Complete your profile to add skills.</p>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {profile.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-5 py-2.5 bg-indigo-500/10 backdrop-blur-sm text-indigo-700 rounded-xl text-sm font-semibold border border-indigo-200/50 hover:bg-indigo-500/20 hover:border-indigo-300/50 transition-all hover:scale-105"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Reviews Section */}
@@ -342,19 +257,49 @@ export default function WorkerProfile() {
                   Client Reviews
                 </h2>
                 <span className="text-sm text-gray-600 font-medium">
-                  0 reviews
+                  {reviews.length} reviews
                 </span>
               </div>
 
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaStar className="text-gray-400 text-2xl" />
-                </div>
-                <p className="text-gray-600 font-medium mb-2">No reviews yet</p>
-                <p className="text-sm text-gray-500">
-                  Complete jobs to receive reviews from employers
-                </p>
+              <div className="space-y-5">
+                {reviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="border-b border-gray-200/50 last:border-0 pb-5 last:pb-0"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-bold text-gray-900">
+                          {review.employer}
+                        </h4>
+                        <p className="text-xs text-gray-500 font-medium">
+                          {review.jobType} • {review.date}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar
+                            key={i}
+                            className={
+                              i < review.rating
+                                ? "text-yellow-400"
+                                : "text-gray-200"
+                            }
+                            size={14}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {review.comment}
+                    </p>
+                  </div>
+                ))}
               </div>
+
+              <button className="mt-5 w-full py-3 text-center text-indigo-600 font-semibold hover:bg-indigo-50/50 backdrop-blur-sm rounded-xl transition-all border border-transparent hover:border-indigo-200/50">
+                View All Reviews
+              </button>
             </div>
           </div>
 
@@ -370,12 +315,12 @@ export default function WorkerProfile() {
                   <div className="w-11 h-11 bg-indigo-500/10 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0 border border-indigo-200/30">
                     <FaPhone className="text-indigo-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div>
                     <p className="text-xs text-gray-500 font-medium mb-0.5">
                       Phone
                     </p>
                     <p className="text-sm font-semibold text-gray-900">
-                      {userData.phone || 'Not provided'}
+                      {profile.phone}
                     </p>
                   </div>
                 </div>
@@ -383,12 +328,12 @@ export default function WorkerProfile() {
                   <div className="w-11 h-11 bg-indigo-500/10 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0 border border-indigo-200/30">
                     <FaEnvelope className="text-indigo-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div>
                     <p className="text-xs text-gray-500 font-medium mb-0.5">
                       Email
                     </p>
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      {userData.email || 'Not provided'}
+                      {profile.email}
                     </p>
                   </div>
                 </div>
@@ -401,7 +346,7 @@ export default function WorkerProfile() {
                 Hourly Rate
               </h3>
               <p className="text-4xl font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600 mb-2">
-                ₹{worker.suggested_rate || 'Not set'}
+                {profile.hourlyRate}
               </p>
               <p className="text-sm text-gray-600 font-medium">per hour</p>
             </div>
@@ -420,7 +365,7 @@ export default function WorkerProfile() {
                     Available Now
                   </p>
                   <p className="text-xs text-gray-600 font-medium">
-                    Ready to work on new projects
+                    {profile.availability}
                   </p>
                 </div>
               </div>
@@ -434,20 +379,16 @@ export default function WorkerProfile() {
               <h3 className="text-lg font-bold text-gray-900 mb-4 tracking-tight">
                 Languages
               </h3>
-              {worker.languages && worker.languages.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {worker.languages.map((language, index) => (
-                    <span
-                      key={index}
-                      className="px-4 py-2 bg-gray-500/10 backdrop-blur-sm text-gray-700 rounded-xl text-sm font-semibold border border-gray-200/50 hover:bg-gray-500/20 hover:border-gray-300/50 transition-all"
-                    >
-                      {language}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No languages specified</p>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {profile.languages.map((language, index) => (
+                  <span
+                    key={index}
+                    className="px-4 py-2 bg-gray-500/10 backdrop-blur-sm text-gray-700 rounded-xl text-sm font-semibold border border-gray-200/50 hover:bg-gray-500/20 hover:border-gray-300/50 transition-all"
+                  >
+                    {language}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Performance Badge */}

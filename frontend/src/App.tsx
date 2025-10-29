@@ -18,7 +18,6 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/login" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth/cleanup" element={<CleanupPage />} />
         <Route path="/worker/onboard" element={<WorkerOnboarding />} />

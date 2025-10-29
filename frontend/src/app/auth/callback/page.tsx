@@ -12,18 +12,18 @@ export default function AuthCallbackPage() {
       if (user) {
         // Check if user has completed onboarding
         if (user.role === 'worker') {
-          navigate('/worker/jobs')
+          navigate('/worker/dashboard')
         } else if (user.role === 'employer') {
           navigate('/employer/dashboard')
         } else {
-          // New user without role - redirect to auth to choose role
-          console.log('New user detected, redirecting to auth for role selection')
-          navigate('/auth', { replace: true })
+          // New user without role - stay on home to choose role
+          console.log('New user detected, redirecting to home for onboarding')
+          navigate('/', { replace: true })
         }
       } else {
-        // Auth failed, redirect to login (but wait a bit for auth to settle)
-        console.log('No user found in callback, redirecting to auth')
-        navigate('/auth', { replace: true })
+        // Auth failed, redirect to login
+        console.error('Auth failed, no user found')
+        navigate('/auth')
       }
     }
   }, [user, loading, navigate])

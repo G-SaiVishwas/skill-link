@@ -89,19 +89,19 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       
       switch (event.error) {
         case 'no-speech':
-          setError('No speech detected. Please try speaking louder.')
+          setError('No speech detected. Please try again.')
           break
         case 'audio-capture':
           setError('Microphone not found. Please check your device.')
           break
         case 'not-allowed':
-          setError('Microphone access denied. Please allow microphone access in your browser settings.')
+          setError('Microphone access denied. Please allow microphone access.')
           break
         case 'network':
-          setError('Voice recognition service unavailable. Please type your introduction instead.')
+          setError('Network error. Please check your connection.')
           break
         default:
-          setError('Voice recording failed. Please type your introduction instead.')
+          setError(`Error: ${event.error}`)
       }
       
       setIsListening(false)

@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   FaMapMarkerAlt,
   FaClock,
@@ -11,161 +10,140 @@ import {
   FaChevronRight,
   FaUser,
   FaCog,
-  FaExclamationCircle,
-  FaCheckCircle,
 } from "react-icons/fa";
 
-interface JobOpportunity {
+interface Job {
   id: string;
-  employer: {
-    id: string;
-    name: string;
-    org_name?: string;
-    verified: boolean;
-    photo_url?: string;
-  };
   title: string;
-  description: string;
-  skills_required: string[];
-  matched_skills: string[];
-  location: {
-    city: string;
-    distance_km: number | null;
+  employer: {
+    name: string;
+    avatar: string;
+    verified: boolean;
   };
-  urgency: string;
-  preferred_experience?: string;
-  availability_window?: string;
-  created_at: string;
-  match_score: number;
-  skill_match_percent: number;
+  description: string;
+  location: string;
+  hourlyRate: string;
+  duration: string;
+  category: string;
+  skills: string[];
+  postedTime: string;
+  likes: number;
+  comments: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
 }
 
 export default function JobsPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [jobs, setJobs] = useState<JobOpportunity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    fetchJobs();
-    loadSavedJobs();
-  }, []);
-
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/workers/jobs`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('session_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // No worker profile found - redirect to onboarding
-          console.log('No worker profile found, redirecting to onboarding');
-          navigate('/worker/onboard');
-          return;
-        }
-        throw new Error('Failed to fetch jobs');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setJobs(data.data || []);
-      } else {
-        throw new Error(data.error || 'Failed to load jobs');
-      }
-    } catch (err: any) {
-      console.error('Error fetching jobs:', err);
-      setError(err.message || 'Failed to load job opportunities');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSavedJobs = () => {
-    const saved = localStorage.getItem('savedJobs');
-    if (saved) {
-      setSavedJobs(new Set(JSON.parse(saved)));
-    }
-  };
-
-  const handleSave = (jobId: string) => {
-    const newSaved = new Set(savedJobs);
-    if (newSaved.has(jobId)) {
-      newSaved.delete(jobId);
-    } else {
-      newSaved.add(jobId);
-    }
-    setSavedJobs(newSaved);
-    localStorage.setItem('savedJobs', JSON.stringify(Array.from(newSaved)));
-  };
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'urgent': return 'text-red-600 bg-red-100';
-      case 'high': return 'text-orange-600 bg-orange-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-green-600 bg-green-100';
-    }
-  };
-
-  const getMatchColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 bg-green-100';
-    if (score >= 60) return 'text-blue-600 bg-blue-100';
-    if (score >= 40) return 'text-yellow-600 bg-yellow-100';
-    return 'text-gray-600 bg-gray-100';
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+  const [jobs, setJobs] = useState<Job[]>([
+    {
+      id: "1",
+      title: "Plumber needed for bathroom renovation",
+      employer: {
+        name: "Rajesh Kumar",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh",
+        verified: true,
+      },
+      description:
+        "Looking for an experienced plumber to renovate a master bathroom. Work includes installing new fixtures, re-piping, and modern fittings. Expected to take 3-4 days.",
+      location: "Andheri West, Mumbai",
+      hourlyRate: "₹500-700",
+      duration: "3-4 days",
+      category: "Plumbing",
+      skills: ["Plumbing", "Bathroom Fitting", "Pipe Installation"],
+      postedTime: "2h ago",
+      likes: 12,
+      comments: 5,
+      isLiked: false,
+      isSaved: false,
+    },
+    {
+      id: "2",
+      title: "Experienced electrician for home wiring",
+      employer: {
+        name: "Priya Sharma",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya",
+        verified: true,
+      },
+      description:
+        "Need a certified electrician to rewire a 2BHK apartment. Must have experience with modern electrical systems and safety certifications.",
+      location: "Whitefield, Bangalore",
+      hourlyRate: "₹600-800",
+      duration: "2-3 days",
+      category: "Electrical",
+      skills: ["Electrical Wiring", "Safety Certification"],
+      postedTime: "5h ago",
+      likes: 8,
+      comments: 3,
+      isLiked: false,
+      isSaved: true,
+    },
+    {
+      id: "3",
+      title: "Chef needed for wedding event",
+      employer: {
+        name: "Meera & Arjun Wedding",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meera",
+        verified: false,
+      },
+      description:
+        "Looking for an experienced chef to prepare traditional North Indian cuisine for 150 guests. Event on Nov 15th. Must have experience with large events.",
+      location: "Connaught Place, Delhi",
+      hourlyRate: "₹1200-1500",
+      duration: "1 day",
+      category: "Cooking",
+      skills: ["Cooking", "Catering", "Event Management"],
+      postedTime: "1d ago",
+      likes: 24,
+      comments: 12,
+      isLiked: true,
+      isSaved: false,
+    },
+    {
+      id: "4",
+      title: "Carpenter for custom furniture",
+      employer: {
+        name: "Home Decor Studio",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Studio",
+        verified: true,
+      },
+      description:
+        "Need a skilled carpenter to build custom wardrobes and study table. Design will be provided. Quality craftsmanship required.",
+      location: "Koramangala, Bangalore",
+      hourlyRate: "₹450-600",
+      duration: "5-7 days",
+      category: "Carpentry",
+      skills: ["Carpentry", "Furniture Making", "Wood Work"],
+      postedTime: "3h ago",
+      likes: 6,
+      comments: 2,
+      isLiked: false,
+      isSaved: false,
+    },
+  ]);
 
   const filters = [
-    { id: "all", label: "All Jobs", count: jobs.length },
-    { id: "high-match", label: "High Match", count: jobs.filter(j => j.match_score >= 70).length },
-    { id: "nearby", label: "Nearby", count: jobs.filter(j => j.location.distance_km && j.location.distance_km <= 10).length },
-    { id: "urgent", label: "Urgent", count: jobs.filter(j => j.urgency === 'urgent' || j.urgency === 'high').length },
-    { id: "saved", label: "Saved", count: savedJobs.size },
+    { id: "all", label: "All Jobs" },
+    { id: "plumbing", label: "Plumbing" },
+    { id: "electrical", label: "Electrical" },
+    { id: "cooking", label: "Cooking" },
+    { id: "carpentry", label: "Carpentry" },
+    { id: "saved", label: "Saved" },
   ];
 
+  const handleSave = (jobId: string) => {
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === jobId ? { ...job, isSaved: !job.isSaved } : job
+      )
+    );
+  };
+
   const filteredJobs = jobs.filter((job) => {
-    // Apply filter
-    if (activeFilter === "high-match" && job.match_score < 70) return false;
-    if (activeFilter === "nearby" && (!job.location.distance_km || job.location.distance_km > 10)) return false;
-    if (activeFilter === "urgent" && job.urgency !== 'urgent' && job.urgency !== 'high') return false;
-    if (activeFilter === "saved" && !savedJobs.has(job.id)) return false;
-
-    // Apply search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        job.title.toLowerCase().includes(query) ||
-        job.description.toLowerCase().includes(query) ||
-        job.employer.name.toLowerCase().includes(query) ||
-        job.skills_required.some(s => s.toLowerCase().includes(query))
-      );
-    }
-
-    return true;
+    if (activeFilter === "all") return true;
+    if (activeFilter === "saved") return job.isSaved;
+    return job.category.toLowerCase() === activeFilter;
   });
 
   return (
@@ -224,25 +202,18 @@ export default function JobsPage() {
                 <button
                   key={filter.id}
                   onClick={() => setActiveFilter(filter.id)}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-between ${
+                  className={`w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
                     activeFilter === filter.id
                       ? "bg-indigo-50 text-indigo-700 shadow-sm"
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
-                  <span>{filter.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      activeFilter === filter.id
-                        ? "bg-indigo-200 text-indigo-800"
-                        : "bg-gray-200 text-gray-600"
-                    }`}>
-                      {filter.count}
-                    </span>
-                    {activeFilter === filter.id && (
+                  {filter.label}
+                  {filter.id === activeFilter && (
+                    <span className="float-right mt-0.5">
                       <FaChevronRight className="text-xs" />
-                    )}
-                  </div>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -330,163 +301,134 @@ export default function JobsPage() {
             </div>
 
             {/* Jobs Cards Grid */}
-            {loading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-gray-200" />
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-32 mb-2" />
-                        <div className="h-3 bg-gray-200 rounded w-20" />
-                      </div>
-                    </div>
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-3" />
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2" />
-                    <div className="h-4 bg-gray-200 rounded w-5/6" />
-                  </div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                <FaExclamationCircle className="text-red-500 text-4xl mx-auto mb-3" />
-                <h3 className="font-semibold text-red-900 mb-2">Error Loading Jobs</h3>
-                <p className="text-red-700 mb-4">{error}</p>
-                <button
-                  onClick={fetchJobs}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredJobs.map((job) => (
+                <article
+                  key={job.id}
+                  className="group bg-white rounded-2xl border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 overflow-hidden"
                 >
-                  Try Again
-                </button>
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
-                <FaBriefcase className="text-gray-400 text-5xl mx-auto mb-4" />
-                <h3 className="font-semibold text-gray-900 mb-2">No Jobs Found</h3>
-                <p className="text-gray-600">
-                  {activeFilter === "saved"
-                    ? "You haven't saved any jobs yet"
-                    : searchQuery
-                    ? "Try adjusting your search or filters"
-                    : "Check back later for new opportunities"}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filteredJobs.map((job) => (
-                  <article
-                    key={job.id}
-                    className="group bg-white rounded-2xl border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 overflow-hidden"
-                  >
-                    <div className="p-6">
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={job.employer.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${job.employer.name}`}
-                            alt={job.employer.name}
-                            className="w-12 h-12 rounded-full ring-2 ring-gray-100 object-cover"
-                          />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">
-                                {job.employer.org_name || job.employer.name}
-                              </h3>
-                              {job.employer.verified && (
-                                <FaCheckCircle className="w-4 h-4 text-indigo-500" />
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              {getTimeAgo(job.created_at)}
-                            </p>
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={job.employer.avatar}
+                          alt={job.employer.name}
+                          className="w-12 h-12 rounded-full ring-2 ring-gray-100"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">
+                              {job.employer.name}
+                            </h3>
+                            {job.employer.verified && (
+                              <svg
+                                className="w-4 h-4 text-indigo-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
                           </div>
+                          <p className="text-xs text-gray-500">
+                            {job.postedTime}
+                          </p>
                         </div>
+                      </div>
 
-                        {/* Save Button */}
-                        <button
-                          onClick={() => handleSave(job.id)}
-                          className="text-gray-400 hover:text-indigo-600 transition-colors"
+                      {/* Save Button */}
+                      <button
+                        onClick={() => handleSave(job.id)}
+                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                      >
+                        {job.isSaved ? (
+                          <FaBookmark className="text-indigo-600 text-lg" />
+                        ) : (
+                          <FaRegBookmark className="text-lg" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Job Title */}
+                    <h2 className="text-lg font-bold text-gray-900 mb-3 group-hover:text-indigo-700 transition-colors">
+                      {job.title}
+                    </h2>
+
+                    {/* Description */}
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
+                      {job.description}
+                    </p>
+
+                    {/* Skills */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {job.skills.slice(0, 3).map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium"
                         >
-                          {savedJobs.has(job.id) ? (
-                            <FaBookmark className="text-indigo-600 text-lg" />
-                          ) : (
-                            <FaRegBookmark className="text-lg" />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Job Title */}
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                        {job.title}
-                      </h4>
-
-                      {/* Description */}
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {job.description}
-                      </p>
-
-                      {/* Match Score & Urgency Badges */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getMatchColor(job.match_score)}`}>
-                          {job.match_score}% Match
+                          {skill}
                         </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
-                          {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)} Priority
+                      ))}
+                      {job.skills.length > 3 && (
+                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                          +{job.skills.length - 3}
                         </span>
-                        {job.location.distance_km && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-100">
-                            {job.location.distance_km.toFixed(1)} km away
-                          </span>
-                        )}
-                      </div>
+                      )}
+                    </div>
 
-                      {/* Skills */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {job.skills_required.slice(0, 4).map((skill, idx) => (
-                          <span
-                            key={idx}
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              job.matched_skills.includes(skill)
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {job.matched_skills.includes(skill) && "✓ "}
-                            {skill}
+                    {/* Footer Details */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <FaMapMarkerAlt className="text-xs text-red-400" />
+                          <span className="text-xs font-medium">
+                            {job.location.split(",")[0]}
                           </span>
-                        ))}
-                        {job.skills_required.length > 4 && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            +{job.skills_required.length - 4} more
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <FaMapMarkerAlt />
-                            <span>{job.location.city}</span>
-                          </div>
-                          {job.availability_window && (
-                            <div className="flex items-center gap-1">
-                              <FaClock />
-                              <span>{job.availability_window}</span>
-                            </div>
-                          )}
                         </div>
-
-                        <Link
-                          to={`/worker/job/${job.id}`}
-                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-                        >
-                          View Details
-                        </Link>
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <FaClock className="text-xs text-blue-400" />
+                          <span className="text-xs font-medium">
+                            {job.duration}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-indigo-700">
+                          {job.hourlyRate}
+                        </p>
+                        <p className="text-xs text-gray-500">per hour</p>
                       </div>
                     </div>
-                  </article>
-                ))}
+
+                    {/* Info Message */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-xs text-center text-gray-500">
+                        💼 Employers will contact you if interested
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredJobs.length === 0 && (
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <FaBriefcase className="text-2xl text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No jobs found
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Try adjusting your filters or check back later for new
+                  opportunities
+                </p>
               </div>
             )}
           </div>

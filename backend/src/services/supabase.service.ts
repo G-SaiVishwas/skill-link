@@ -60,18 +60,6 @@ class SupabaseService {
     return data;
   }
 
-  async updateUserRole(userId: string, role: 'worker' | 'employer') {
-    const { data, error } = await this.client
-      .from('users')
-      .update({ role })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
-
   // Worker profile operations
   async getWorkerProfile(userId: string) {
     const { data, error } = await this.client

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
 import {
   FaMicrophone,
   FaCamera,
@@ -25,10 +24,7 @@ type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export default function WorkerOnboarding() {
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   
   // Speech recognition hook
   const {
@@ -150,80 +146,11 @@ export default function WorkerOnboarding() {
     }
   };
 
-  const handleComplete = async () => {
-    try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      const token = localStorage.getItem('session_token');
-      if (!token) {
-        setSubmitError('Not authenticated. Please login again.');
-        navigate('/auth');
-        return;
-      }
-
-      // Step 1: Upload photo if provided
-      let photoUrl = '';
-      if (formData.photo) {
-        const photoFormData = new FormData();
-        photoFormData.append('file', formData.photo);
-
-        const photoResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/photo`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: photoFormData,
-        });
-
-        if (!photoResponse.ok) {
-          throw new Error('Failed to upload photo');
-        }
-
-        const photoData = await photoResponse.json();
-        photoUrl = photoData.url;
-      }
-
-      // Step 2: Create worker profile
-      const profileData = {
-        display_name: formData.name,
-        intro_text: formData.voiceTranscript || formData.bio || 'No introduction provided',
-        photo_url: photoUrl || undefined,
-        location: {
-          city: formData.city,
-        },
-        rate_per_hour: formData.hourlyRate ? parseInt(formData.hourlyRate) : undefined,
-        languages: ['English', 'Hindi'], // Default languages
-      };
-
-      const profileResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/onboard/worker`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      if (!profileResponse.ok) {
-        const errorData = await profileResponse.json();
-        throw new Error(errorData.error || 'Failed to create profile');
-      }
-
-      const result = await profileResponse.json();
-      console.log('Profile created successfully:', result);
-
-      // Refresh user data to update role in auth context
-      await refreshUser();
-
-      // Navigate to jobs page
-      navigate('/worker/jobs');
-    } catch (error: any) {
-      console.error('Onboarding error:', error);
-      setSubmitError(error.message || 'Failed to complete onboarding. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleComplete = () => {
+    // Save profile data
+    console.log("Profile completed:", formData);
+    // Navigate to jobs page
+    navigate("/worker/jobs");
   };
 
   const suggestedSkills = [
@@ -390,28 +317,6 @@ export default function WorkerOnboarding() {
                 {speechError && (
                   <div className="mb-6 px-6 py-4 rounded-xl bg-red-100 border border-red-300 text-red-700">
                     {speechError}
-                    <p className="text-sm mt-2">💡 You can type your introduction below instead.</p>
-                  </div>
-                )}
-
-                {/* Text Input Fallback */}
-                {(speechError || !isSupported || formData.voiceTranscript) && (
-                  <div className="mb-6 max-w-2xl mx-auto">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Or type your introduction:
-                    </label>
-                    <textarea
-                      value={formData.voiceTranscript}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          voiceTranscript: e.target.value,
-                        }))
-                      }
-                      placeholder="Tell us about your skills, experience, and what kind of work you do..."
-                      className="w-full px-6 py-4 rounded-xl backdrop-blur-xl bg-white/70 border border-white/80 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-lg min-h-[120px]"
-                      rows={4}
-                    />
                   </div>
                 )}
 
@@ -820,22 +725,13 @@ export default function WorkerOnboarding() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Error Message */}
-        {submitError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-700 text-sm font-medium text-center">
-              {submitError}
-            </p>
-          </div>
-        )}
-
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center">
           <button
             onClick={handlePrev}
-            disabled={currentStep === 1 || isSubmitting}
+            disabled={currentStep === 1}
             className={`px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center gap-2 transition-all ${
-              currentStep === 1 || isSubmitting
+              currentStep === 1
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-white/70 text-gray-800 border border-gray-300 hover:shadow-xl hover:scale-105"
             }`}
@@ -847,8 +743,7 @@ export default function WorkerOnboarding() {
           {currentStep < totalSteps ? (
             <button
               onClick={handleNext}
-              disabled={isSubmitting}
-              className="px-8 py-3 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="px-8 py-3 rounded-xl bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
             >
               Next
               <FaArrowRight />
@@ -856,20 +751,10 @@ export default function WorkerOnboarding() {
           ) : (
             <button
               onClick={handleComplete}
-              disabled={isSubmitting}
-              className="px-8 py-3 rounded-xl bg-linear-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="px-8 py-3 rounded-xl bg-linear-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Profile...
-                </>
-              ) : (
-                <>
-                  <FaCheckCircle />
-                  Complete & Find Jobs
-                </>
-              )}
+              <FaCheckCircle />
+              Complete & Find Jobs
             </button>
           )}
         </div>
